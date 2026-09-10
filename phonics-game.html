@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>多拼国 · 拼读大冒险</title>
+<style>
+  :root{
+    --green:#58cc02; --green-d:#46a302; --blue:#1cb0f6; --blue-d:#1899d6;
+    --red:#ff4b4b; --red-d:#d33131; --gold:#ffc800; --gold-d:#e6a100;
+    --ink:#3c3c3c; --muted:#afafaf; --line:#e5e5e5; --bg:#fff;
+    --gray:#f7f7f7;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    display:flex; justify-content:center;
+  }
+  #app{width:100%; max-width:520px; min-height:100vh; display:flex; flex-direction:column; position:relative}
+
+  /* ===== 通用大按钮（多邻国式立体按钮）===== */
+  .btn{
+    border:none; border-radius:16px; padding:14px 18px; font-size:16px; font-weight:800;
+    color:#fff; cursor:pointer; letter-spacing:.5px; font-family:inherit;
+    background:var(--green); box-shadow:0 4px 0 var(--green-d);
+  }
+  .btn:active{transform:translateY(4px); box-shadow:none}
+  .btn.blue{background:var(--blue); box-shadow:0 4px 0 var(--blue-d)}
+  .btn.blue:active{box-shadow:none}
+  .btn.ghost{background:#fff; color:var(--blue); border:2px solid var(--line); box-shadow:0 4px 0 var(--line)}
+  .btn.ghost:active{box-shadow:none}
+  .btn.gray{background:#e5e5e5; color:var(--muted); box-shadow:0 4px 0 #d5d5d5; pointer-events:none}
+  .btn.wide{width:100%}
+
+  /* ===== 主页 HUD ===== */
+  .hud{
+    position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--line);
+    padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .stat{font-size:18px; font-weight:800; display:flex; align-items:center; gap:5px; min-width:64px}
+  .stat b{color:var(--gold-d)}
+  .stat.fire b{color:#ff9600}
+  .hud h1{font-size:19px; margin:0; letter-spacing:1px}
+  .homeTabs{display:flex; gap:8px; padding:12px 16px 0}
+  .htab{
+    flex:1; border:2px solid var(--line); background:#fff; border-radius:12px; padding:8px 0;
+    font-size:14px; font-weight:800; cursor:pointer; color:var(--muted); font-family:inherit;
+  }
+  .htab.on{border-color:var(--green); color:var(--green-d); background:#f0fee0}
+
+  /* ===== 冒险地图 ===== */
+  #pathView{flex:1; padding:6px 16px 40px}
+  .unitBanner{
+    margin:22px 0 4px; border-radius:14px; padding:10px 14px; color:#fff;
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    box-shadow:0 4px 0 rgba(0,0,0,.14);
+  }
+  .unitBanner h2{margin:0; font-size:16px}
+  .unitBanner .ud{font-size:12px; opacity:.92; font-weight:600}
+  .unitBanner .prog{margin-left:auto; font-size:12px; font-weight:800; background:rgba(255,255,255,.25); padding:2px 8px; border-radius:99px}
+  .unitDone{animation:pop .5s}
+  .nodeWrap{display:flex; justify-content:center; padding:14px 0 2px; position:relative}
+  .node{
+    width:74px; height:74px; border-radius:50%; border:none; cursor:pointer; font-family:inherit;
+    color:#fff; font-size:13px; font-weight:800; line-height:1.15;
+    box-shadow:0 6px 0 rgba(0,0,0,.22); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    position:relative; transition:transform .08s;
+  }
+  .node:active{transform:translateY(5px); box-shadow:0 1px 0 rgba(0,0,0,.22)}
+  .node .sub{font-size:10px; font-weight:700; opacity:.85}
+  .node.locked{background:#e5e5e5; color:var(--muted); box-shadow:0 6px 0 #d0d0d0; cursor:not-allowed}
+  .node.done{filter:none}
+  .node.next{animation:bounce 1.6s infinite}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  @keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .nodeLabel{text-align:center; font-size:11px; color:var(--muted); margin-top:4px; font-weight:700}
+  .lockToast{
+    position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+    background:#3c3c3c; color:#fff; font-size:13px; font-weight:700; padding:9px 16px;
+    border-radius:12px; z-index:60; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .lockToast.show{opacity:1}
+  .allDone{
+    margin:18px 0 0; background:linear-gradient(135deg,#58cc02,#1cb0f6); color:#fff;
+    border-radius:16px; padding:16px; text-align:center; font-size:15px; font-weight:800;
+  }
+
+  /* ===== 速查 / 设置 ===== */
+  .sheetWrap{padding:6px 16px 40px}
+  table.sheet{width:100%; border-collapse:collapse; background:#fff; font-size:12.5px; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .sheet th,.sheet td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top}
+  .sheet th{background:var(--gray); font-size:11px; color:var(--muted)}
+  .sheet tr.sect td{background:#ddf4ff; font-weight:800}
+  .sheet .cb{font-weight:800; white-space:nowrap}
+  .sheet .py{color:#1899d6; font-weight:700}
+  .sheet .py.none{color:var(--red-d)}
+  .sheet .wd{font-family:Georgia,"Times New Roman",serif}
+  .setWrap{padding:6px 16px 40px; display:flex; flex-direction:column; gap:16px}
+  .setCard{border:2px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:14px}
+  .setCard label{display:flex; flex-direction:column; gap:6px; font-weight:800; font-size:13px; color:#777}
+  .setCard select{padding:8px; border-radius:10px; border:2px solid var(--line); font-size:14px; font-family:inherit}
+  .setCard input[type=range]{width:100%}
+  .warnTip{font-size:13px; color:var(--red-d); background:#fff0f0; border-radius:10px; padding:8px 10px}
+
+  /* ===== 特训中心 ===== */
+  .hubCard{background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .hubHead{font-size:16px;font-weight:800}
+  .hubDesc{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:3px 0 12px;line-height:1.6}
+  .hubNodes{display:flex;gap:16px;flex-wrap:wrap}
+  .mnode{
+    width:62px;height:62px;border-radius:50%;border:none;color:#fff;font-size:11px;font-weight:800;
+    cursor:pointer;font-family:inherit;box-shadow:0 4px 0 rgba(0,0,0,.2);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:transform .08s;
+  }
+  .mnode:active{transform:translateY(3px);box-shadow:none}
+  .mnode.locked{background:#e5e5e5!important;color:var(--muted);box-shadow:0 4px 0 #d0d0d0;cursor:not-allowed}
+  .mnode.next{animation:bounce 1.6s infinite}
+  /* 句子 / 听写 / 音节 新题型 */
+  .sentCard{background:var(--gray);border:2px solid var(--line);border-radius:14px;padding:14px;width:100%}
+  .sentEn{font-family:Georgia,"Times New Roman",serif;font-size:19px;font-weight:800;line-height:1.9}
+  .sentEn .sw{cursor:pointer;border-bottom:2px dotted #b8b8b8}
+  .sentCn{font-size:13px;color:var(--muted);font-weight:700;margin-top:6px}
+  .slots2{min-height:52px;border:2px dashed #cfcfcf;border-radius:12px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+  .words2{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+  .wchip{border:2px solid var(--line);border-bottom-width:4px;border-radius:10px;background:#fff;padding:8px 13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .wchip.built{background:#ddf4ff;border-color:var(--blue)}
+  .wchip.built:active{transform:translateY(2px)}
+  .tiles.long .tile,.tiles.long .slot{width:34px;height:44px;font-size:18px;border-radius:8px}
+  .slots.long .slot{width:34px;height:44px;font-size:18px}
+  .tileRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  /* ===== 课程视图 ===== */
+  #lesson{flex:1; display:flex; flex-direction:column; min-height:100vh}
+  .lhud{position:sticky; top:0; background:#fff; z-index:10; padding:14px 16px; display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line)}
+  .qQuit{border:none; background:none; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; padding:4px}
+  .bar{flex:1; height:16px; background:#e5e5e5; border-radius:99px; overflow:hidden}
+  .bar i{display:block; height:100%; width:0; background:var(--green); border-radius:99px; transition:width .3s; position:relative}
+  .hearts{font-size:16px; font-weight:800; white-space:nowrap}
+  .hearts .off{opacity:.25; filter:grayscale(1)}
+  #qArea{flex:1; padding:20px 16px 130px; display:flex; flex-direction:column; gap:18px}
+  .bubble{
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .mascot{font-size:44px; line-height:1; filter:drop-shadow(0 3px 0 rgba(0,0,0,.12))}
+  .say{
+    background:var(--gray); border:2px solid var(--line); border-radius:4px 16px 16px 16px;
+    padding:10px 14px; font-size:16px; font-weight:800; line-height:1.5;
+  }
+  .say small{display:block; color:var(--muted); font-size:12px; font-weight:700; margin-top:2px}
+  .qmain{display:flex; flex-direction:column; gap:14px; align-items:center}
+  .qbig{
+    font-size:52px; font-weight:900; letter-spacing:2px; padding:6px 26px; border-radius:18px;
+  }
+  .qipa{font-size:14px; color:var(--muted); font-weight:700}
+  .opts{display:flex; flex-direction:column; gap:10px}
+  .opt{
+    border:2px solid var(--line); border-bottom-width:4px; background:#fff; border-radius:14px;
+    padding:13px 16px; font-size:17px; font-weight:800; cursor:pointer; text-align:left;
+    font-family:Georgia,"Times New Roman",serif; display:flex; align-items:center; gap:10px; width:100%;
+  }
+  .opt .cn{font-family:inherit; font-size:14px; color:#777; font-weight:700}
+  .opt .say_{
+    margin-left:auto; border:none; background:var(--blue); color:#fff; border-radius:10px;
+    width:34px; height:34px; font-size:16px; cursor:pointer; flex:none;
+  }
+  .opt:not(:disabled):hover{border-color:#84d8ff; background:#f2fdff}
+  .opt.sel{border-color:var(--blue); background:#ddf4ff}
+  .opt.ok{border-color:var(--green); background:#f0fee0}
+  .opt.bad{border-color:var(--red); background:#ffdfe0; animation:shake .3s}
+  .opt:disabled{cursor:default}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  /* 连连看 */
+  .match{display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%}
+  .mcol{display:flex; flex-direction:column; gap:10px}
+  .mcell{
+    border:2px solid var(--line); border-bottom-width:4px; background:#fff; border-radius:12px;
+    padding:12px 8px; font-size:15px; font-weight:800; cursor:pointer; text-align:center; font-family:inherit;
+  }
+  .mcell.en{font-family:Georgia,"Times New Roman",serif}
+  .mcell.sel{border-color:var(--blue); background:#ddf4ff; transform:translateY(2px)}
+  .mcell.ok{border-color:var(--green); background:#f0fee0; color:#58cc02; pointer-events:none; animation:pop .35s}
+  .mcell.bad{border-color:var(--red); background:#ffdfe0; animation:shake .3s}
+
+  /* 拼字母 */
+  .slots{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; min-height:56px}
+  .slot{
+    width:48px; height:56px; border:2px dashed #d0d0d0; border-radius:10px; background:#fafafa;
+    display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:900;
+    font-family:Georgia,"Times New Roman",serif;
+  }
+  .slot.fill{border-style:solid; border-color:var(--blue); background:#ddf4ff; color:#1899d6}
+  .tiles{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+  .tile{
+    width:48px; height:56px; border:2px solid var(--line); border-bottom-width:5px; border-radius:10px;
+    background:#fff; font-size:26px; font-weight:900; cursor:pointer; font-family:Georgia,"Times New Roman",serif; color:var(--ink);
+  }
+  .tile:disabled{opacity:.25; cursor:default}
+  .tileRow{display:flex; gap:10px; justify-content:center}
+
+  /* 底部反馈条 */
+  .feed{
+    position:fixed; bottom:0; left:50%; transform:translate(-50%,110%); width:100%; max-width:520px;
+    padding:16px; z-index:30; transition:transform .22s; border-top:2px solid;
+  }
+  .feed.show{transform:translate(-50%,0)}
+  .feed.good{background:#d7ffb8; border-color:#a5ed6e; --fb:#58a700}
+  .feed.badf{background:#ffdfe0; border-color:#ffb2b2; --fb:#ea2b2b}
+  .feed .fbTitle{font-size:18px; font-weight:900; color:var(--fb)}
+  .feed .fbBody{font-size:14px; font-weight:700; color:var(--fb); margin:3px 0 12px; line-height:1.5}
+  .feed .btn{background:#fff; color:var(--fb); box-shadow:0 4px 0 rgba(0,0,0,.15); float:right; padding:10px 22px}
+  .feed .btn:active{box-shadow:none}
+
+  /* 结算覆盖层 */
+  .overlay{
+    position:fixed; inset:0; background:#fff; z-index:40; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center;
+  }
+  .overlay .big{font-size:64px; animation:pop .6s}
+  .overlay h2{margin:0; font-size:26px; color:var(--green-d)}
+  .overlay h2.lost{color:var(--red-d)}
+  .overlay .stats{display:flex; gap:14px; margin:10px 0 6px}
+  .ostat{border:2px solid var(--gold); border-radius:14px; padding:10px 18px; min-width:110px}
+  .ostat .k{font-size:12px; color:var(--gold-d); font-weight:800}
+  .ostat .v{font-size:22px; font-weight:900; color:var(--gold-d)}
+  .overlay .row{display:flex; gap:10px; margin-top:14px; width:100%; max-width:340px; flex-direction:column}
+  #fxLayer{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden}
+  .confetti{position:absolute; width:10px; height:14px; top:-20px; animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+  @media (max-width:420px){
+    .qbig{font-size:40px}
+    .slot,.tile{width:42px; height:50px; font-size:22px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 主页 ===== -->
+  <div id="home" style="display:flex; flex-direction:column; flex:1">
+    <header class="hud">
+      <div class="stat fire">🔥<b id="stStreak">0</b></div>
+      <h1>🐯 多拼国</h1>
+      <div class="stat" style="justify-content:flex-end">⭐<b id="stXP">0</b></div>
+    </header>
+    <nav class="homeTabs">
+      <button class="htab on" data-v="pathView">🗺 冒险</button>
+      <button class="htab" data-v="hubView">🎯 特训</button>
+      <button class="htab" data-v="refView">📖 速查</button>
+      <button class="htab" data-v="setView">⚙️ 设置</button>
+    </nav>
+    <section id="pathView"></section>
+    <section id="hubView" style="padding:6px 16px 40px" hidden></section>
+    <section id="refView" class="sheetWrap" hidden></section>
+    <section id="setView" class="setWrap" hidden>
+      <div class="setCard">
+        <label>🗣 发音语音
+          <select id="voiceSel"></select>
+        </label>
+        <label>🐢 语速 <span id="rateVal"></span>
+          <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="0.75">
+        </label>
+        <div class="warnTip" id="noVoice" hidden>⚠️ 没检测到英语语音包：请用 Safari / Chrome 打开本页，不要在微信里打开。</div>
+      </div>
+      <div class="setCard">
+        <b>🎮 玩法</b>
+        <span style="color:#777; line-height:1.7">红心 ❤️ 是体力，答错扣一颗，扣光就要重闯本关；连对 3 题开始有连击加分；关卡全对拿 🏆。进度存在本机浏览器里。</span>
+      </div>
+      <button class="btn ghost" id="resetBtn">🧹 清空全部进度</button>
+    </section>
+  </div>
+
+  <!-- ===== 课程 ===== -->
+  <div id="lesson" hidden>
+    <header class="lhud">
+      <button class="qQuit" id="qQuit">✕</button>
+      <div class="bar"><i id="fillBar"></i></div>
+      <div class="hearts" id="heartsBox"></div>
+    </header>
+    <div id="qArea"></div>
+  </div>
+
+  <div class="feed" id="feedBar">
+    <div style="overflow:hidden">
+      <div class="fbTitle" id="fbTitle"></div>
+      <div class="fbBody" id="fbBody"></div>
+      <button class="btn" id="fbGo">继续</button>
+    </div>
+  </div>
+
+  <div class="lockToast" id="lockToast">🔒 先完成前面的关卡！</div>
+  <div id="fxLayer"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ================= 数据（与学习版一致） ================= */
+const GROUPS = [
+{ id:"short", name:"① 短元音", color:"#ff9600", dark:"#e08600",
+  desc:"一个元音字母在闭音节里发\"短音\"",
+  items:[
+    {combo:"a", ipa:"/æ/", pinyin:"≈ 拼音 a（啊），嘴更扁", re:"a", cue:"aah",
+     tip:"嘴张大像说\"啊\"，嘴角向两边拉。", words:["cat","hat","map","bag","apple"]},
+    {combo:"e", ipa:"/e/", pinyin:"≈ 拼音 ei 的前半段（诶，不带 i）", re:"e", cue:"eh",
+     tip:"像说\"诶\"，嘴停在半开。", words:["bed","pen","egg","ten","red"]},
+    {combo:"i", ipa:"/ɪ/", pinyin:"≈ 拼音 i（衣），短促放松", re:"i", cue:"ih",
+     tip:"发\"衣\"，更短促放松。", words:["sit","big","fish","pig","milk"]},
+    {combo:"o", ipa:"/ɒ/", pinyin:"≈ 拼音 o（喔）", re:"o", cue:"ah",
+     tip:"圆唇说\"喔\"，美音更接近\"啊\"。", words:["hot","dog","box","fox","top"]},
+    {combo:"u", ipa:"/ʌ/", pinyin:"≈ 拼音 a（啊）的短促版", re:"u", cue:"uh",
+     tip:"放松短促地说\"啊\"，不要读成\"乌\"！", words:["bus","cup","sun","run","duck"]},
+  ]
+},
+{ id:"cons", name:"② 基础辅音", color:"#ce82ff", dark:"#a568cc",
+  desc:"和拼音几乎一样，重点记几个\"不一样\"的",
+  items:[
+    {combo:"b p m f d t n l g k s z w", ipa:"同拼音", pinyin:"直接用拼音发音", re:"", cue:"",
+     tip:"和拼音声母基本一致，p/t/k 送气更强。", words:["bed","pen","map","dog","kite"]},
+    {combo:"j", ipa:"/dʒ/", pinyin:"≈ 拼音 zh（知），振动声带", re:"j", cue:"jam",
+     tip:"像\"知\"的声母，振动声带、双唇略圆。", words:["jam","jet","jump","jacket","job"]},
+    {combo:"g（软音）", ipa:"/dʒ/", pinyin:"≈ 拼音 zh（知），振动声带", re:"g", cue:"gym",
+     tip:"g 在 e/i/y 前发软音。", words:["gym","giraffe","gem","giant","orange"]},
+    {combo:"c（软音）", ipa:"/s/", pinyin:"= 拼音 s（丝）", re:"c", cue:"ice",
+     tip:"c 在 e/i/y 前发 s。", words:["city","face","ice","circle","nice"]},
+    {combo:"y（当辅音）", ipa:"/j/", pinyin:"= 拼音 y（爷的声母）", re:"y", cue:"yes",
+     tip:"音节开头就是拼音 y。", words:["yes","you","yellow","yogurt","young"]},
+    {combo:"r", ipa:"/r/", pinyin:"拼音没有！舌尖卷起不碰任何地方", re:"r", cue:"red",
+     tip:"发\"若\"但舌尖后卷悬空。", words:["red","run","rabbit","read","rain"]},
+    {combo:"l", ipa:"/l/", pinyin:"= 拼音 l", re:"l", cue:"leg",
+     tip:"和拼音 l 相同，词尾舌尖不松开。", words:["leg","like","ball","milk","feel"]},
+    {combo:"v", ipa:"/v/", pinyin:"拼音没有！咬下唇+振动声带", re:"v", cue:"van",
+     tip:"像 f 但要振动声带。", words:["very","five","love","seven","van"]},
+    {combo:"x", ipa:"/ks/", pinyin:"= 拼音 k+s 快连", re:"x", cue:"box",
+     tip:"\"克斯\"连读。", words:["box","fox","six","exit","x-ray"]},
+  ]
+},
+{ id:"long", name:"③ 长元音（魔法 e / 组合）", color:"#00cd9c", dark:"#00b08a",
+  desc:"魔法 e 让元音读回字母本名，拼音全都有！",
+  items:[
+    {combo:"a_e · ai · ay", ipa:"/eɪ/", pinyin:"= 拼音 ei（欸）", re:"(a[^aeiouy]*e|ai|ay)", cue:"ay",
+     tip:"和拼音 ei 一样。", words:["cake","rain","day","name","play"]},
+    {combo:"e_e · ee · ea", ipa:"/iː/", pinyin:"= 拼音 i（衣）", re:"(e[^aeiouy]*e|ee|ea)", cue:"ee",
+     tip:"和拼音 i 相同，读长一点。", words:["see","eat","team","these","green"]},
+    {combo:"i_e · igh · y", ipa:"/aɪ/", pinyin:"= 拼音 ai（爱）", re:"(i[^aeiouy]*e|igh|y)", cue:"eye",
+     tip:"和拼音 ai 一模一样。", words:["bike","night","my","time","fly"]},
+    {combo:"o_e · oa · ow", ipa:"/oʊ/", pinyin:"= 拼音 ou（欧）", re:"(o[^aeiouy]*e|oa|ow)", cue:"oh",
+     tip:"和拼音 ou 相同。", words:["home","boat","snow","nose","window"]},
+    {combo:"u_e · ue · ew", ipa:"/uː/ /juː/", pinyin:"= 拼音 u（乌）/ iu（优）", re:"(u[^aeiouy]*e|ue|ew)", cue:"oo",
+     tip:"blue 读\"乌\"，cute/new 读\"优\"。", words:["blue","cute","new","flute","rescue"]},
+  ]
+},
+{ id:"digraph", name:"④ 辅音组合", color:"#1cb0f6", dark:"#1899d6",
+  desc:"两个辅音字母抱团发一个音",
+  items:[
+    {combo:"sh", ipa:"/ʃ/", pinyin:"≈ 拼音 x 和 sh 之间，唇更圆", re:"sh", cue:"shh",
+     tip:"舌面抬高，双唇略圆前突。", words:["she","ship","fish","shop","wash"]},
+    {combo:"ch · tch", ipa:"/tʃ/", pinyin:"≈ 拼音 q，双唇略圆", re:"(ch|tch)", cue:"chip",
+     tip:"像拼音 q，不要读成\"吃\"！", words:["chair","lunch","watch","teacher","match"]},
+    {combo:"th（清）", ipa:"/θ/", pinyin:"拼音没有！舌尖伸到齿间吹气", re:"th", cue:"thin",
+     tip:"舌尖放上下齿之间吹气，不振动。", words:["three","thank","bath","teeth","month"]},
+    {combo:"th（浊）", ipa:"/ð/", pinyin:"拼音没有！舌尖齿间+振动声带", re:"th", cue:"this",
+     tip:"口型同清 th，但要振动声带。", words:["this","that","mother","brother","they"]},
+    {combo:"ph", ipa:"/f/", pinyin:"= 拼音 f", re:"ph", cue:"phone",
+     tip:"ph 就是 f。", words:["phone","photo","elephant","dolphin","graph"]},
+    {combo:"wh", ipa:"/w/", pinyin:"= 拼音 w", re:"wh", cue:"we",
+     tip:"和拼音 w 相同。", words:["what","white","wheel","when","whale"]},
+    {combo:"ck", ipa:"/k/", pinyin:"= 拼音 k", re:"ck", cue:"cat",
+     tip:"ck 就是 k。", words:["duck","clock","black","rock","chicken"]},
+    {combo:"ng", ipa:"/ŋ/", pinyin:"= 拼音后鼻音 ang/eng 的尾音", re:"ng", cue:"sing",
+     tip:"只发后鼻音不带韵母。", words:["sing","king","long","ring","morning"]},
+    {combo:"qu", ipa:"/kw/", pinyin:"= 拼音 k+u 快连", re:"qu", cue:"queen",
+     tip:"q 和 u 永远在一起。", words:["queen","quick","quit","quiet","quack"]},
+  ]
+},
+{ id:"r", name:"⑤ r 控制元音", color:"#ff86c8", dark:"#d6579f",
+  desc:"元音被后面的 r 接管，美音要卷舌！",
+  items:[
+    {combo:"ar", ipa:"/ɑːr/", pinyin:"= 拼音 a（啊）+ 卷舌", re:"ar", cue:"are",
+     tip:"\"啊儿\"连成一个音。", words:["car","star","farm","park","garden"]},
+    {combo:"or", ipa:"/ɔːr/", pinyin:"≈ 拼音 o（喔）+ 卷舌", re:"or", cue:"or",
+     tip:"\"哦儿\"连读。", words:["for","horse","fork","born","morning"]},
+    {combo:"er · ir · ur", ipa:"/ɜːr/", pinyin:"拼音没有！像\"鹅\"+卷舌", re:"(er|ir|ur)", cue:"her",
+     tip:"先发\"鹅\"再卷舌，出现频率极高。", words:["her","bird","nurse","sister","turn"]},
+  ]
+},
+{ id:"vowel2", name:"⑥ 其他元音组合", color:"#ffc800", dark:"#e6a100",
+  desc:"背下来就能读对一大半单词",
+  items:[
+    {combo:"oo（长）", ipa:"/uː/", pinyin:"= 拼音 u（乌）", re:"oo", cue:"oo",
+     tip:"和拼音 u 相同，读长一点。", words:["moon","food","zoo","school","afternoon"]},
+    {combo:"oo（短）", ipa:"/ʊ/", pinyin:"≈ 拼音 u 的短促松版", re:"oo", cue:"book",
+     tip:"比\"乌\"更短更松。", words:["book","look","good","foot","cook"]},
+    {combo:"ou · ow", ipa:"/aʊ/", pinyin:"= 拼音 ao（凹）", re:"(ou|ow)", cue:"ow",
+     tip:"和拼音 ao 一模一样。", words:["cow","house","out","now","mouse"]},
+    {combo:"oi · oy", ipa:"/ɔɪ/", pinyin:"≈ \"哦-衣\"连读", re:"(oi|oy)", cue:"oy",
+     tip:"先\"哦\"再滑到\"衣\"。", words:["boy","coin","toy","oil","point"]},
+    {combo:"au · aw", ipa:"/ɔː/", pinyin:"≈ 拼音 ao，嘴唇更圆", re:"(au|aw)", cue:"aw",
+     tip:"嘴唇更圆更紧。", words:["saw","autumn","draw","paw","sauce"]},
+    {combo:"ea（短）", ipa:"/e/", pinyin:"≈ 拼音 ei 前半段", re:"ea", cue:"eh",
+     tip:"ea 大多发\"衣\"，这部分发短 e，靠记。", words:["head","bread","breakfast","weather","ready"]},
+  ]
+},
+{ id:"r2", name:"⑦ 进阶 r 组合与长音拼法", color:"#2dd4bf", dark:"#1ea895",
+  desc:"更多\"见面直接读\"的组合",
+  items:[
+    {combo:"air · are", ipa:"/eər/", pinyin:"拼音没有！像\"唉\"+卷舌", re:"(air|are)", cue:"hair",
+     tip:"先说\"诶\"，再卷舌收\"儿\"。air 和 are 完全同音。", words:["air","hair","chair","fair","care"]},
+    {combo:"ear · eer · ere", ipa:"/ɪər/", pinyin:"拼音没有！像\"衣\"+卷舌", re:"(ear|eer|ere)", cue:"year",
+     tip:"先发\"衣\"再卷舌收\"儿\"。", words:["year","ear","hear","deer","career"]},
+    {combo:"our · ower", ipa:"/aʊər/", pinyin:"拼音没有！像\"凹\"+卷舌", re:"(our|ower)", cue:"hour",
+     tip:"先\"凹\"再卷舌，一气呵成。", words:["our","flower","power","tower","sour"]},
+    {combo:"ie", ipa:"/aɪ/", pinyin:"= 拼音 ai（爱）", re:"ie", cue:"pie",
+     tip:"ie 大多发\"爱\"；少数词发\"衣\"（field）。", words:["pie","tie","lie","fried","cried"]},
+    {combo:"ey", ipa:"/iː/", pinyin:"= 拼音 i（衣）", re:"ey", cue:"key",
+     tip:"词尾 ey 常发\"衣\"；例外 hey、they 发\"欸\"。", words:["monkey","money","honey","key","turkey"]},
+    {combo:"eigh · ei", ipa:"/eɪ/", pinyin:"= 拼音 ei（欸）", re:"(eigh|ei)", cue:"eight",
+     tip:"还是\"欸\"的音。", words:["eight","neighbor","weigh","sleigh","vein"]},
+    {combo:"oe", ipa:"/oʊ/", pinyin:"= 拼音 ou（欧）", re:"oe", cue:"toe",
+     tip:"词尾 oe 发\"欧\"。", words:["toe","hoe","goes","heroes","tomatoes"]},
+  ]
+},
+{ id:"special", name:"⑧ 无声字母与特殊读法", color:"#f43f5e", dark:"#c22947",
+  desc:"字母在却不发音，或换了场合变音",
+  items:[
+    {combo:"kn", ipa:"/n/", pinyin:"k 无声！= 拼音 n", re:"kn", cue:"knee",
+     tip:"kn 开头 k 不发音，直接读 n。", words:["know","knee","knife","knock","knit"]},
+    {combo:"wr", ipa:"/r/", pinyin:"w 无声！读英语卷舌 r", re:"wr", cue:"write",
+     tip:"wr 开头 w 不发音。", words:["write","wrong","wrist","wrap","wrench"]},
+    {combo:"mb（词尾）", ipa:"/m/", pinyin:"b 无声！= 拼音 m（呣）", re:"mb", cue:"thumb",
+     tip:"词尾 mb 的 b 不发音。", words:["climb","lamb","thumb","comb","crumb"]},
+    {combo:"gh", ipa:"/g/ /f/ 无声", pinyin:"三种读法：g / f / 不发音", re:"gh", cue:"ghost",
+     tip:"ghost 读 g；laugh 读 f；night 里不发音——靠记。", words:["ghost","laugh","night","tough","light"]},
+    {combo:"ch → /k/", ipa:"/k/", pinyin:"= 拼音 k", re:"ch", cue:"school",
+     tip:"ch 在 s 后或希腊词源里读 k。", words:["school","chorus","stomach","echo","scheme"]},
+    {combo:"wa", ipa:"/wɒ/ /wɑ/", pinyin:"≈ 拼音 o（喔）：w 后的 a 变圆唇", re:"wa", cue:"want",
+     tip:"wa 常发\"喔\"，不要读成\"外\"！", words:["want","wash","watch","wander","waffle"]},
+    {combo:"al · alk", ipa:"/ɔː/", pinyin:"≈ 拼音 ao（凹）", re:"al", cue:"ball",
+     tip:"l 前面的 a 常变\"凹\"。", words:["ball","tall","talk","walk","small"]},
+    {combo:"old · ind · ild", ipa:"/oʊld/ /aɪnd/", pinyin:"old≈\"欧\"；ind·ild≈\"爱\"", re:"(old|ild|ind)", cue:"cold",
+     tip:"cold 发\"欧\"；find、wild 发\"爱\"。", words:["cold","old","find","kind","wild"]},
+  ]
+},
+{ id:"blends", name:"⑨ 辅音连缀与词缀", color:"#84cc16", dark:"#689f12",
+  desc:"快连不加\"呃\"；词缀音块让长词不怕",
+  items:[
+    {combo:"st·sp·sk·sm·sn·sw", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(st|sp|sk|sm|sn|sw)", cue:"stop",
+     tip:"不要读成\"斯-托普\"，s 和 t 一口气连完。", words:["stop","swim","sky","small","snow"]},
+    {combo:"bl·cl·fl·gl·pl·sl", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(bl|cl|fl|gl|pl|sl)", cue:"blue",
+     tip:"blue 是 b-l-ue 一口气，别加\"呃\"。", words:["blue","black","clock","plane","glue","sleep"]},
+    {combo:"br·cr·dr·fr·gr·pr·tr", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(br|cr|dr|fr|gr|pr|tr)", cue:"bread",
+     tip:"tr、dr 别翘成\"吃/知\"，保持 t/d 再卷舌。", words:["bread","cry","dream","frog","green","tree"]},
+    {combo:"mp·nd·nk·nt·ft", ipa:"词尾连缀", pinyin:"= 拼音 m/n + 尾辅音快连", re:"(mp|nd|nk|nt|ft)", cue:"hand",
+     tip:"结尾的辅音也要发出来，不要吞掉。", words:["hand","lamp","sink","plant","gift"]},
+    {combo:"tion · sion", ipa:"/ʃən/ /ʒən/", pinyin:"拼音没有！≈ 轻读\"申\"；sion 带 /ʒ/", re:"(tion|sion)", cue:"nation",
+     tip:"轻读\"申\"：nation。measure 里的 s 就是 /ʒ/。", words:["nation","station","vacation","action","lotion"]},
+    {combo:"ture", ipa:"/tʃər/", pinyin:"≈ \"彻儿\"轻读", re:"ture", cue:"picture",
+     tip:"≈\"彻儿\"连读：picture、future。", words:["picture","future","nature","lecture","adventure"]},
+    {combo:"le（词尾）", ipa:"/əl/", pinyin:"≈ 轻读的\"勒\"", re:"le$", cue:"little",
+     tip:"词尾 le = 轻读 /əl/，舌尖抵上齿龈。", words:["little","apple","table","candle","purple"]},
+  ]
+},
+{ id:"sight", name:"⑩ 高频词 Sight Words", color:"#64748b", dark:"#475569",
+  desc:"最常用的词最不守规则——用拼音整体记",
+  items:[
+    {combo:"one · come · some · love", ipa:"/ʌ/", pinyin:"o 读\"啊\"！one ≈ 拼音 wan（万）", re:"o", cue:"one",
+     tip:"o 发短\"啊\"：one 读\"万\"、come 读\"卡姆\"。", words:["one","come","some","love","done"]},
+    {combo:"two · who", ipa:"/uː/", pinyin:"w 无声！two ≈ tu（图）、who ≈ hu（呼）", re:"(two|who)", cue:"two",
+     tip:"w 完全不发音：two 读\"图\"、who 读\"呼\"。", words:["two","who","whose","whom"]},
+    {combo:"said · says · again", ipa:"/sɛd/ /sɛz/", pinyin:"ai 只发短\"诶\"：said ≈ \"赛德\"快读", re:"(ai|ay)", cue:"said",
+     tip:"said 读\"赛德\"、says 读\"赛兹\"——ai 缩成短诶。", words:["said","says","again","against"]},
+    {combo:"you · could · should · would", ipa:"/juː/ /ʊ/", pinyin:"you ≈ 拼音 iu（优）；ould ≈ \"乌德\"", re:"(you|ould)", cue:"you",
+     tip:"could/should/would 的 l 无声、ou 读\"乌\"。", words:["you","your","could","should","would"]},
+    {combo:"y（词尾）", ipa:"/i/", pinyin:"= 拼音 i（衣）", re:"y$", cue:"happy",
+     tip:"词尾 y 读\"衣\"：very、baby、happy。", words:["very","baby","happy","family","city"]},
+    {combo:"there · their · here", ipa:"/ðeər/ /hɪər/", pinyin:"拼音没有！there/their ≈ \"戴儿\"", re:"(there|their|here)", cue:"there",
+     tip:"there/their 同音\"戴儿\"；here ≈ \"黑儿\"。", words:["there","their","here","where"]},
+    {combo:"friend · great · break", ipa:"/ɛ/ /eɪ/", pinyin:"friend ≈ \"弗伦德\"；great ≈ \"格瑞特\"", re:"(friend|great|break|steak)", cue:"friend",
+     tip:"高频例外词，整体记。", words:["friend","great","break","steak"]},
+    {combo:"of · to · do", ipa:"/əv/ /tuː/ /duː/", pinyin:"of 轻读\"额夫\"；to ≈ tu（图）；do ≈ du（都）", re:"(of|to|do)", cue:"of",
+     tip:"of 轻读\"额夫\"，不要读\"奥夫\"。", words:["of","to","do","into"]},
+  ]
+}];
+
+/* ================= 存档 ================= */
+let save = JSON.parse(localStorage.getItem("dpg-game") || "null") || {xp:0, streak:0, lastDay:"", stars:{}, modes:{sent:[0,0,0],dict:[0,0,0],syl:[0,0,0]}};
+if(!save.modes) save.modes={sent:[0,0,0],dict:[0,0,0],syl:[0,0,0]};
+function persist(){ localStorage.setItem("dpg-game", JSON.stringify(save)); }
+const LEVELS = 3;
+const key = (u,l) => u + "-" + l;
+function unitDone(u){ for(let l=0;l<LEVELS;l++) if(!save.stars[key(u,l)]) return false; return true; }
+function isUnlocked(u,l){
+  if(u===0 && l===0) return true;
+  if(l>0) return !!save.stars[key(u,l-1)];
+  return unitDone(u-1);
+}
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function bumpStreak(){
+  const t = todayStr();
+  if(save.lastDay === t) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const yStr = y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();
+  save.streak = (save.lastDay === yStr) ? save.streak+1 : 1;
+  save.lastDay = t;
+  persist();
+}
+
+/* ================= 发音与音效 ================= */
+let voice=null, ttsUnlocked=false;
+const voiceSel=document.getElementById("voiceSel");
+const rateInput=document.getElementById("rate");
+const rateVal=document.getElementById("rateVal");
+rateInput.addEventListener("input",()=>rateVal.textContent=rateInput.value+"×");
+function loadVoices(){
+  const all=speechSynthesis.getVoices().filter(v=>/^en([-_]|$)/i.test(v.lang));
+  if(!all.length){ document.getElementById("noVoice").hidden=!speechSynthesis.getVoices().length; return; }
+  document.getElementById("noVoice").hidden=true;
+  const cur=voiceSel.value;
+  voiceSel.innerHTML="";
+  for(const v of all){ const o=document.createElement("option"); o.value=v.voiceURI; o.textContent=v.name+" ("+v.lang+")"; voiceSel.appendChild(o); }
+  const saved=localStorage.getItem("dpg-voice");
+  voice = all.find(v=>v.voiceURI===(cur||saved))
+        || all.find(v=>/en[-_]US/i.test(v.lang)&&/samantha|alex|google|ava|allison/i.test(v.name))
+        || all.find(v=>/en[-_]US/i.test(v.lang)) || all[0];
+  voiceSel.value=voice.voiceURI;
+}
+voiceSel.addEventListener("change",()=>{ voice=speechSynthesis.getVoices().find(v=>v.voiceURI===voiceSel.value)||voice; localStorage.setItem("dpg-voice",voiceSel.value); speak("hello"); });
+if(window.speechSynthesis){ speechSynthesis.onvoiceschanged=loadVoices; loadVoices(); setTimeout(loadVoices,600); }
+function speak(text, rateOverride){
+  return new Promise(res=>{
+    if(!text||!window.speechSynthesis) return res();
+    const u=new SpeechSynthesisUtterance(text);
+    if(voice){ u.voice=voice; u.lang=voice.lang; } else u.lang="en-US";
+    u.rate=rateOverride||parseFloat(rateInput.value);
+    const guard=setTimeout(res, Math.max(4000,text.length*400));
+    u.onend=()=>{clearTimeout(guard);res();}; u.onerror=()=>{clearTimeout(guard);res();};
+    if(!ttsUnlocked){ ttsUnlocked=true; speechSynthesis.speak(u); return; }
+    if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();
+    setTimeout(()=>speechSynthesis.speak(u),15);
+  });
+}
+let AC=null;
+function ac(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); return AC; }catch(e){ return null; } }
+function tone(f,t0,dur,type,vol){
+  const a=ac(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type=type||"sine"; o.frequency.value=f;
+  const t=a.currentTime+t0;
+  g.gain.setValueAtTime(vol||.15,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.05);
+}
+function fx(n){
+  if(n==="ok"){ tone(660,0,.12); tone(880,.1,.2); }
+  else if(n==="bad"){ tone(196,0,.28,"sawtooth",.1); }
+  else if(n==="tap"){ tone(520,0,.06,"triangle",.08); }
+  else if(n==="win"){ [523,659,784,1047].forEach((f,i)=>tone(f,i*.12,.25)); }
+}
+
+/* —— 特训中心渲染 —— */
+function renderHub(){
+  const modes=[
+    {id:"sent", icon:"📖", name:"句子闯关", desc:"把学过的词连成句子读——从\"能拼词\"到\"能阅读\"的关键一步：先听读，再排句、辨句。", color:"var(--green)", names:["短元音句","长元音句","进阶句"]},
+    {id:"dict", icon:"✍️", name:"听写训练", desc:"听发音→盲拼单词，练\"听音能写\"的另一半能力。答完会显示对应的组合和拼音提示。", color:"var(--blue)", names:["核心词","组合词","进阶词"]},
+    {id:"syl", icon:"🧩", name:"音节与重音", desc:"长词怎么切、哪里读得最重——攻克多音节词的钥匙：hospital、banana、vacation。", color:"var(--gold)", names:["两音节","三音节","高阶"]}
+  ];
+  const root=$("hubView");
+  root.innerHTML=`<p style="font-size:13px;color:var(--muted);margin:14px 0 12px;line-height:1.7">三个特训场，把冒险地图上学到的东西<b>用出来</b>。每关 8 题，答错扣红心；答对的词都来自你闯过的关卡。</p>` + modes.map(m=>{
+    const nodes=m.names.map((nm,l)=>{
+      const st=save.modes[m.id][l]||0;
+      const open=l===0||(save.modes[m.id][l-1]||0)>0;
+      return `<button class="mnode ${open?"":"locked"} ${open&&!st?"next":""}" data-mode="${m.id}" data-l="${l}" style="background:${m.color}">
+        <span style="font-size:17px">${!open?"🔒":st===2?"🏆":st===1?"⭐":"▶"}</span>
+        <span style="font-size:9px">${!open?"未解锁":st?"已通":nm}</span></button>`;
+    }).join("");
+    return `<div class="hubCard"><div class="hubHead">${m.icon} ${m.name}<span class="hubDesc">${m.desc}</span></div><div class="hubNodes">${nodes}</div></div>`;
+  }).join("");
+  root.querySelectorAll(".mnode").forEach(n=>n.addEventListener("click",()=>{
+    if(n.classList.contains("locked")){ toast(); return; }
+    startModeLesson(n.dataset.mode, +n.dataset.l);
+  }));
+}
+
+/* ================= 主页渲染 ================= */
+const OFFSETS=[0,72,104,72,0,-72,-104,-72];
+function renderHome(){
+  document.getElementById("stXP").textContent=save.xp;
+  document.getElementById("stStreak").textContent=save.streak;
+  const root=document.getElementById("pathView");
+  let html="", allClear=true;
+  GROUPS.forEach((g,u)=>{
+    const done=unitDone(u);
+    if(!done) allClear=false;
+    const stars=Object.keys(save.stars).filter(k=>k.startsWith(u+"-")).length;
+    html+=`<div class="unitBanner ${done?"unitDone":""}" style="background:${g.color}">
+      <h2>${g.name}</h2><span class="ud">${g.desc}</span><span class="prog">${stars}/${LEVELS} ⭐</span></div>`;
+    for(let l=0;l<LEVELS;l++){
+      const idx=u*LEVELS+l;
+      const st=save.stars[key(u,l)]||0;
+      const open=isUnlocked(u,l);
+      const cls=!open?"locked":(st?"done":"next");
+      const face=!open?"🔒":(st===2?"🏆":st===1?"⭐":"▶");
+      const nodeNo=open&&!st?(l+1):"";
+      const label=g.items.slice(l*2, l*2+2).map(i=>i.combo.split(" ")[0]).join(" · ")||g.items[0].combo;
+      html+=`<div class="nodeWrap" style="transform:translateX(${OFFSETS[idx%8]*.6}px)">
+        <div><button class="node ${cls}" data-u="${u}" data-l="${l}" style="background:${g.color}; ${!open?"background:#e5e5e5":""}">
+          <span style="font-size:24px">${face}</span>${nodeNo?`<span>第${l+1}关</span>`:`<span class="sub">${st===2?"完美通关":st===1?"已通关":"未解锁"}</span>`}
+        </button><div class="nodeLabel">${label}</div></div></div>`;
+    }
+  });
+  if(allClear) html+=`<div class="allDone">🎉🎉🎉 恭喜通关整个多拼国！<br>你已经掌握了自然拼读的全部基础组合！</div>`;
+  root.innerHTML=html;
+  root.querySelectorAll(".node").forEach(n=>n.addEventListener("click",()=>{
+    const u=+n.dataset.u, l=+n.dataset.l;
+    if(!isUnlocked(u,l)){ toast(); return; }
+    startLesson(u,l);
+  }));
+  renderSheet();
+  renderHub();
+}
+let toastTimer=null;
+function toast(){
+  const t=document.getElementById("lockToast");
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),1500);
+}
+function renderSheet(){
+  const root=document.getElementById("refView");
+  let html=`<p style="font-size:12px;color:var(--muted)">组合 → 拼音近似 → 例词（红色 = 拼音里没有的音）</p><table class="sheet"><thead><tr><th>组合</th><th>音标</th><th>拼音近似</th><th>例词</th></tr></thead><tbody>`;
+  for(const g of GROUPS){
+    html+=`<tr class="sect"><td colspan="4">${g.name} —— ${g.desc}</td></tr>`;
+    for(const it of g.items){
+      const none=it.pinyin.includes("没有");
+      html+=`<tr><td class="cb" style="color:${g.dark}">${it.combo}</td><td>${it.ipa}</td>
+        <td class="py ${none?"none":""}">${it.pinyin}</td><td class="wd">${it.words.slice(0,4).join(" · ")}</td></tr>`;
+    }
+  }
+  root.innerHTML=html+`</tbody></table>`;
+}
+document.querySelectorAll(".htab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".htab").forEach(x=>x.classList.toggle("on",x===t));
+  for(const id of ["pathView","hubView","refView","setView"]) document.getElementById(id).hidden=(id!==t.dataset.v);
+}));
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(confirm("确定清空全部进度吗？红心、星星、XP 都会重置。")){
+    save={xp:0,streak:0,lastDay:"",stars:{},modes:{sent:[0,0,0],dict:[0,0,0],syl:[0,0,0]}}; persist(); renderHome();
+  }
+});
+
+/* ================= 课程引擎 ================= */
+const QN=8, HEARTS=5;
+let L=null;
+const $=id=>document.getElementById(id);
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+function allEntries(){ const e=[]; GROUPS.forEach((g,u)=>g.items.forEach((it,i)=>e.push({g,u,it}))); return e; }
+
+function makeQ(type, pool, entries){
+  const e=pick(pool);
+  if(type==="listen-word"){
+    let opts=shuffle([...e.it.words]).slice(0,4);
+    if(opts.length<4){
+      const extra=shuffle(entries.flatMap(x=>x.it.words).filter(w=>!opts.includes(w))).slice(0,4-opts.length);
+      opts=shuffle(opts.concat(extra));
+    }
+    return {type, target:e, word:pick(opts), options:opts};
+  }
+  if(type==="combo-pinyin"){
+    const others=shuffle(entries.filter(x=>x.it!==e.it&&x.it.pinyin!==e.it.pinyin).map(x=>x.it.pinyin)).slice(0,3);
+    return {type, target:e, options:shuffle([e.it.pinyin,...others])};
+  }
+  if(type==="listen-combo"){
+    const distract=shuffle(entries.filter(x=>x.g.id!==e.g.id||x.it!==e.it).map(x=>x.it.combo).filter(c=>c!==e.it.combo)).slice(0,3);
+    return {type, target:e, word:pick(e.it.words), options:shuffle([e.it.combo,...distract])};
+  }
+  if(type==="choose-sound"){
+    const re=e.it.re?new RegExp(e.it.re):null;
+    const distract=shuffle([...new Set(entries.filter(x=>x.it!==e.it).flatMap(x=>x.it.words))])
+      .filter(w=>!re||!re.test(w)).slice(0,3);
+    if(distract.length<3) return makeQ("listen-word",pool,entries);
+    const w=pick(e.it.words);
+    return {type, target:e, word:w, options:shuffle([w,...distract])};
+  }
+  if(type==="build-word"){
+    const words=shuffle(pool.flatMap(x=>x.it.words).filter(w=>/^[a-z]{3,6}$/.test(w)));
+    if(!words.length) return makeQ("listen-word",pool,entries);
+    const word=pick(words);
+    return {type, target:e, word};
+  }
+  if(type==="match-pairs"){
+    const uniq=[]; const seen=new Set();
+    for(const x of pool){ if(!seen.has(x.it.pinyin)){ seen.add(x.it.pinyin); uniq.push(x); } }
+    const n=Math.min(4,uniq.length);
+    if(n<3) return makeQ("listen-word",pool,entries);
+    const chosen=shuffle(uniq).slice(0,n);
+    return {type, target:chosen[0], pairs:chosen, left:shuffle([...chosen]), right:shuffle([...chosen])};
+  }
+}
+
+function buildQuestions(u,l){
+  const g=GROUPS[u];
+  const entries=allEntries();
+  const half=Math.ceil(g.items.length/2);
+  const A=g.items.slice(0,half).map(it=>({g,u,it}));
+  const B=(g.items.slice(half).length?g.items.slice(half):g.items).map(it=>({g,u,it}));
+  let types;
+  if(l===0){
+    types=shuffle(["listen-word","combo-pinyin","choose-sound","listen-word","combo-pinyin","choose-sound","listen-word","combo-pinyin"]);
+    return types.map(t=>makeQ(t,A,entries));
+  }
+  if(l===1){
+    types=shuffle(["listen-combo","build-word","listen-word","listen-combo","build-word","choose-sound","listen-combo","build-word"]);
+    return types.map(t=>makeQ(t,B,entries));
+  }
+  types=shuffle(["listen-word","combo-pinyin","build-word","choose-sound","listen-combo","match-pairs","combo-pinyin","listen-word"]);
+  return types.map(t=>makeQ(t,A.concat(B),entries));
+}
+
+/* ================= 特训中心：句子 / 听写 / 音节 ================= */
+const SENT_LEVELS=[
+ {name:"第1关 · 短元音句", list:[
+   {en:"The cat sat on a red mat.", cn:"猫坐在一块红色的垫子上。"},
+   {en:"A big pig sits in the mud.", cn:"一头大猪坐在泥里。"},
+   {en:"The dog and the fox run to the log.", cn:"狗和狐狸跑向木头。"},
+   {en:"Ten red hens get ten eggs.", cn:"十只红母鸡下十个蛋。"},
+   {en:"The fish swims in the pond.", cn:"鱼在池塘里游。"},
+   {en:"A bug sits on the red bus.", cn:"一只虫子坐在红色的公交车上。"},
+ ]},
+ {name:"第2关 · 长元音句", list:[
+   {en:"I like to ride my bike at night.", cn:"我喜欢在晚上骑我的自行车。"},
+   {en:"We can see the green tree by the sea.", cn:"我们能看见海边的绿树。"},
+   {en:"She eats a cake and a sweet peach.", cn:"她吃一块蛋糕和一个甜桃子。"},
+   {en:"The moon looks big and bright tonight.", cn:"今晚的月亮看起来又大又亮。"},
+   {en:"A white mouse runs into the house.", cn:"一只白老鼠跑进了房子。"},
+   {en:"I play with my toys in the rain.", cn:"下雨的时候我玩我的玩具。"},
+ ]},
+ {name:"第3关 · 进阶句", list:[
+   {en:"My friend and I play in the park.", cn:"我和朋友在公园里玩。"},
+   {en:"The three kings have gold rings.", cn:"三个国王有金戒指。"},
+   {en:"The girl wants to wash her shirt.", cn:"女孩想洗她的衬衫。"},
+   {en:"The boy found a coin near the tree.", cn:"男孩在树附近发现了一个硬币。"},
+   {en:"The tall horse stops at the wall.", cn:"高大的马在墙边停了下来。"},
+   {en:"Grandma reads a story about a mouse.", cn:"奶奶读了一个关于老鼠的故事。"},
+ ]},
+];
+const DICT_LEVELS=[
+ {name:"第1关 · 核心词", words:["cat","bed","sit","hot","run","cake","rain","bike","moon"]},
+ {name:"第2关 · 组合词", words:["ship","chair","three","phone","duck","car","bird","cow","book"]},
+ {name:"第3关 · 进阶词", words:["stop","bread","know","write","ghost","want","friend","said","happy"]},
+];
+const SYL_LEVELS=[
+ {name:"第1关 · 两音节", list:[
+   {w:"tiger",syl:["ti","ger"],st:0},{w:"water",syl:["wa","ter"],st:0},{w:"monkey",syl:["mon","key"],st:0},
+   {w:"garden",syl:["gar","den"],st:0},{w:"hotel",syl:["ho","tel"],st:1},{w:"money",syl:["mon","ey"],st:0},
+   {w:"baby",syl:["ba","by"],st:0},{w:"pencil",syl:["pen","cil"],st:0},{w:"dolphin",syl:["dol","phin"],st:0}]},
+ {name:"第2关 · 三音节", list:[
+   {w:"banana",syl:["ba","na","na"],st:1},{w:"computer",syl:["com","pu","ter"],st:1},{w:"elephant",syl:["el","e","phant"],st:0},
+   {w:"family",syl:["fam","i","ly"],st:0},{w:"tomato",syl:["to","ma","to"],st:1},{w:"animal",syl:["an","i","mal"],st:0},
+   {w:"umbrella",syl:["um","brel","la"],st:1},{w:"important",syl:["im","por","tant"],st:1},{w:"hospital",syl:["hos","pi","tal"],st:0}]},
+ {name:"第3关 · 高阶", list:[
+   {w:"together",syl:["to","geth","er"],st:1},{w:"afternoon",syl:["af","ter","noon"],st:2},{w:"understand",syl:["un","der","stand"],st:2},
+   {w:"vacation",syl:["va","ca","tion"],st:1},{w:"direction",syl:["di","rec","tion"],st:1},{w:"bicycle",syl:["bi","cy","cle"],st:0},
+   {w:"holiday",syl:["hol","i","day"],st:0},{w:"september",syl:["sep","tem","ber"],st:1},{w:"television",syl:["te","le","vi","sion"],st:0}]},
+];
+const wordItemMap={};
+GROUPS.forEach(g=>g.items.forEach(it=>it.words.forEach(w=>{ if(!wordItemMap[w]) wordItemMap[w]=it; })));
+
+function buildSentLesson(l){
+  const level=SENT_LEVELS[l];
+  const pick4=shuffle([...level.list]).slice(0,4);
+  const qs=[];
+  for(const s of pick4){
+    qs.push({type:"sent-read", sentence:s});
+    qs.push(pick(["sent-arrange","sent-pick"])==="sent-arrange"
+      ? {type:"sent-arrange", sentence:s, tokens:s.en.replace(/[.!?]$/,"").split(" ")}
+      : {type:"sent-pick", sentence:s, options:shuffle([s.en, ...shuffle(level.list.filter(x=>x!==s)).slice(0,2).map(x=>x.en)])});
+  }
+  return qs;
+}
+function buildDictLesson(l){
+  return shuffle([...DICT_LEVELS[l].words]).map(w=>({type:"dictate", w, item:wordItemMap[w]}));
+}
+function sylVariants(syl){
+  const word=syl.join(""), bounds=[]; let acc=0;
+  for(let i=0;i<syl.length-1;i++){ acc+=syl[i].length; bounds.push(acc); }
+  const res=[];
+  for(let i=0;i<bounds.length;i++){
+    for(const d of [-1,1]){
+      const nb=bounds.map((b,j)=>j===i?b+d:b);
+      if(nb.some(b=>b<1||b>=word.length)) continue;
+      const sorted=[...nb].sort((a,b)=>a-b);
+      if(sorted.some((b,j)=>j>0&&b===sorted[j-1])) continue;
+      const parts=[]; let prev=0;
+      for(const b of sorted){ parts.push(word.slice(prev,b)); prev=b; }
+      parts.push(word.slice(prev));
+      if(parts.every(p=>p.length>0)) res.push(parts.join("·"));
+    }
+  }
+  return [...new Set(res)].filter(x=>x!==syl.join("·"));
+}
+function stressMark(syl,st){ return syl.map((s,i)=>i===st?s.toUpperCase():s).join("·"); }
+function buildSylLesson(l){
+  const qs=[];
+  shuffle([...SYL_LEVELS[l].list]).forEach((it,i)=>{
+    if(i%2===0){
+      const vs=shuffle(sylVariants(it.syl)).slice(0,2);
+      qs.push({type:"syl-split", item:it, answer:it.syl.join("·"), options:shuffle([it.syl.join("·"),...vs])});
+    }else{
+      qs.push({type:"syl-stress", item:it, answer:"第"+(it.st+1)+"个音节"});
+    }
+  });
+  return qs;
+}
+function startModeLesson(mode,l){
+  const qs = mode==="sent"?buildSentLesson(l):mode==="dict"?buildDictLesson(l):buildSylLesson(l);
+  L={mode, u:-1, l, qs, i:0, hearts:HEARTS, xp:0, mistakes:0, combo:0, answered:false, quitAsk:false};
+  $("home").style.display="none";
+  $("lesson").hidden=false;
+  renderQ();
+}
+
+function startLesson(u,l){
+  L={u,l,qs:buildQuestions(u,l),i:0,hearts:HEARTS,xp:0,mistakes:0,combo:0,answered:false,quitAsk:false};
+  $("home").style.display="none";
+  $("lesson").hidden=false;
+  renderQ();
+}
+
+function renderQ(){
+  const q=L.qs[L.i];
+  L.answered=false;
+  $("fillBar").style.width=(L.i/L.qs.length*100)+"%";
+  $("heartsBox").innerHTML=Array.from({length:HEARTS},(_,i)=>`<span class="${i<L.hearts?"":"off"}">❤️</span>`).join("");
+  const area=$("qArea");
+  area.innerHTML="";
+  const prompts={
+    "listen-word":["🎧 听！是哪个单词？","点喇叭可以再听一次"],
+    "combo-pinyin":["🔤 这个组合怎么读？","选出正确的拼音提示"],
+    "listen-combo":["🎧 这个词里藏着哪个组合？","听完选出词里包含的组合"],
+    "choose-sound":["🔍 哪个单词里有这个组合？","点小喇叭可以先听一听"],
+    "build-word":["🧩 把单词拼出来！","听发音，按顺序点字母"],
+    "match-pairs":["🔗 连连看！","左边组合 ↔ 右边拼音提示"],
+    "sent-read":["📖 先听，再跟着读","点句子里的单词可以单独听"],
+    "sent-arrange":["🧺 把句子排出来","听完，按顺序把词点进去"],
+    "sent-pick":["🎧 听一听，是哪句话？","三个句子长得很像，仔细听"],
+    "dictate":["✍️ 听写！把单词拼出来","先听发音再点字母，卡住了点提示"],
+    "syl-split":["🍉 这个词怎么切音节？","每个音节只有一个元音"],
+    "syl-stress":["📣 哪个音节读得最重？","听发音，选出重读的那个音节"],
+  };
+  let html=`<div class="bubble"><span class="mascot">🐯</span>
+    <div class="say">${prompts[q.type][0]}<small>${prompts[q.type][1]}</small></div></div>`;
+
+  if(q.type==="combo-pinyin"){
+    html+=`<div class="qmain">
+      <div class="qbig" style="background:${q.target.g.color}22;color:${q.target.g.dark}">${q.target.it.combo}</div>
+      <div class="qipa">${q.target.it.ipa}</div>
+      <button class="btn blue" id="hearBtn">🔊 听听看</button></div>
+      <div class="opts">${q.options.map(o=>`<button class="opt" data-ok="${o===q.target.it.pinyin}" style="font-family:inherit"><span class="cn">${o}</span></button>`).join("")}</div>`;
+  }else if(q.type==="listen-combo"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="opts">${q.options.map(o=>`<button class="opt" data-ok="${o===q.target.it.combo}" style="font-family:inherit">${o}</button>`).join("")}</div>`;
+  }else if(q.type==="choose-sound"){
+    html+=`<div class="qmain">
+      <div class="qbig" style="background:${q.target.g.color}22;color:${q.target.g.dark}">${q.target.it.combo}</div>
+      <div class="qipa">${q.target.it.pinyin}</div></div>
+      <div class="opts">${q.options.map(o=>`<div class="opt" data-ok="${o===q.word}"><span>${o}</span><button class="say_" data-say="${o}">🔊</button></div>`).join("")}</div>`;
+  }else if(q.type==="build-word"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="slots" id="slots">${q.word.split("").map(()=>`<div class="slot"></div>`).join("")}</div>
+      <div class="tiles" id="tiles"></div>
+      <div class="tileRow"><button class="btn ghost" id="backspace">⌫ 退格</button></div>`;
+  }else if(q.type==="match-pairs"){
+    html+=`<div class="match"><div class="mcol" id="mLeft"></div><div class="mcol" id="mRight"></div></div>`;
+  }else if(q.type==="sent-read"){
+    html+=`<div class="qmain"><div class="sentCard">
+      <div class="sentEn">${q.sentence.en.replace(/[.!?]$/,"").split(" ").map(w=>`<span class="sw" data-say="${w}">${w}</span>`).join(" ")}<span>.</span></div>
+      <div class="sentCn">💬 ${q.sentence.cn}</div></div>
+      <button class="btn blue" id="hearBtn">🔊 再听一次</button>
+      <button class="btn" id="readDone">✓ 我会读了</button></div>`;
+  }else if(q.type==="sent-arrange"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="slots2" id="sentBuilt"></div>
+      <div class="words2" id="sentBank"></div>`;
+  }else if(q.type==="sent-pick"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="opts">${q.options.map(o=>`<button class="opt" data-ok="${o===q.sentence.en}" style="font-family:inherit;font-size:14px">${o}</button>`).join("")}</div>`;
+  }else if(q.type==="dictate"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="slots ${q.w.length>6?"long":""}" id="slots">${q.w.split("").map(()=>`<div class="slot"></div>`).join("")}</div>
+      <div class="tiles ${q.w.length>6?"long":""}" id="tiles"></div>
+      <div class="tileRow"><button class="btn ghost" id="backspace">⌫ 退格</button><button class="btn ghost" id="hintBtn">💡 提示一个字母</button></div>`;
+  }else if(q.type==="syl-split"){
+    html+=`<div class="qmain">
+      <div class="qbig" style="font-size:34px;letter-spacing:1px;background:${"var(--gray)"};color:var(--ink)">${q.item.w}</div>
+      <button class="btn blue" id="hearBtn">🔊 听一听</button></div>
+      <div class="opts">${q.options.map(o=>`<button class="opt" data-ok="${o===q.answer}" style="font-family:inherit">${o}</button>`).join("")}</div>`;
+  }else if(q.type==="syl-stress"){
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="opts">${q.item.syl.map((s,i)=>`<button class="opt" data-ok="${i===q.item.st}" style="font-family:inherit">第 ${i+1} 个：${s}</button>`).join("")}</div>`;
+  }else{ /* listen-word */
+    html+=`<div class="qmain"><button class="btn blue" id="hearBtn">🔊 再听一次</button></div>
+      <div class="opts">${q.options.map(o=>`<button class="opt" data-ok="${o===q.word}">${o}</button>`).join("")}</div>`;
+  }
+  area.innerHTML=html;
+
+  // 听音类自动朗读 + 重听按钮
+  const hear=$("hearBtn");
+  let sayWhat=null;   // 按题型取，避免访问不存在的字段
+  if(q.type==="listen-word"||q.type==="listen-combo"||q.type==="build-word") sayWhat=q.word;
+  else if(q.type==="combo-pinyin") sayWhat=q.target.it.cue;
+  else if(q.type==="sent-read"||q.type==="sent-pick"||q.type==="sent-arrange") sayWhat=q.sentence.en;
+  else if(q.type==="dictate") sayWhat=q.w;
+  else if(q.type==="syl-split"||q.type==="syl-stress") sayWhat=q.item.w;
+  if(hear && sayWhat) hear.addEventListener("click",()=>speak(sayWhat,0.7));
+  if(hear && !sayWhat){ hear.disabled=true; hear.classList.add("gray"); }
+  if(sayWhat && q.type!=="combo-pinyin") setTimeout(()=>speak(sayWhat,0.72),350);
+  if(q.type==="combo-pinyin" && q.target.it.cue) setTimeout(()=>speak(q.target.it.cue,0.7),350);
+
+  if(q.type==="build-word") initBuild(q);
+  if(q.type==="match-pairs") initMatch(q);
+  if(q.type==="dictate") initDictate(q);
+  if(q.type==="sent-arrange") initSentArrange(q);
+  if(q.type==="sent-read"){
+    const rd=$("readDone");
+    if(rd) rd.addEventListener("click",()=>{
+      if(L.answered) return;
+      L.answered=true; fx("ok");
+      settle(true,"能读整句了，离流利阅读又近一步！");
+    });
+  }
+  if(q.type==="sent-read"||q.type==="sent-pick"||q.type==="sent-arrange"){
+    document.querySelectorAll("#qArea .sw").forEach(s=>s.addEventListener("click",()=>speak(s.dataset.say,0.8)));
+  }
+  if(q.type==="choose-sound"){
+    area.querySelectorAll(".say_").forEach(b=>b.addEventListener("click",ev=>{
+      ev.stopPropagation(); speak(b.dataset.say,0.8);
+    }));
+  }
+  const optBtns=area.querySelectorAll(".opt");
+  optBtns.forEach(b=>b.addEventListener("click",()=>{
+    if(L.answered) return;
+    L.answered=true;
+    const ok=b.dataset.ok==="true";
+    fx(ok?"ok":"bad");
+    optBtns.forEach(x=>{ x.disabled=true; if(x.dataset.ok==="true") x.classList.add("ok"); });
+    if(!ok) b.classList.add("bad");
+    settle(ok, ok?"":"" + correctText(q));
+  }));
+}
+function wordOf(q,o){ return o; }
+function correctText(q){
+  if(q.type==="listen-word") return q.word;
+  if(q.type==="combo-pinyin") return q.target.it.pinyin;
+  if(q.type==="listen-combo") return q.target.it.combo;
+  if(q.type==="choose-sound") return q.word;
+  if(q.type==="build-word") return q.word;
+  if(q.type==="sent-arrange"||q.type==="sent-pick") return q.sentence.en;
+  if(q.type==="dictate") return q.w;
+  if(q.type==="syl-split") return q.answer;
+  if(q.type==="syl-stress") return stressMark(q.item.syl,q.item.st);
+  return "";
+}
+
+/* —— 拼字母 —— */
+function initBuild(q){
+  const tilesBox=$("tiles"), slots=[...$("slots").children];
+  let letters=q.word.split("");
+  let order=shuffle(letters.map((_,i)=>i));
+  if(order.join(",")===letters.map((_,i)=>i).join(",")&&letters.length>1) order.reverse();
+  tilesBox.innerHTML=order.map(i=>`<button class="tile" data-i="${i}">${letters[i]}</button>`).join("");
+  let picked=[];
+  function redraw(){
+    slots.forEach((s,idx)=>{ s.textContent=picked[idx]!==undefined?letters[picked[idx]]:""; s.classList.toggle("fill",picked[idx]!==undefined); });
+    tilesBox.querySelectorAll(".tile").forEach(t=>t.disabled=picked.includes(+t.dataset.i));
+    if(picked.length===q.word.length){
+      const guess=picked.map(i=>letters[i]).join("");
+      if(guess===q.word){
+        if(L.answered) return;
+        L.answered=true; fx("ok"); settle(true,"");
+      }else{
+        if(L.answered) return;
+        L.answered=true; fx("bad");
+        tilesBox.querySelectorAll(".tile").forEach(t=>t.disabled=true);
+        settle(false,"正确拼法："+q.word);
+      }
+    }
+  }
+  tilesBox.querySelectorAll(".tile").forEach(t=>t.addEventListener("click",()=>{
+    if(L.answered||picked.includes(+t.dataset.i)) return;
+    fx("tap"); picked.push(+t.dataset.i); redraw();
+  }));
+  $("backspace").addEventListener("click",()=>{
+    if(L.answered||!picked.length) return;
+    fx("tap"); picked.pop(); redraw();
+  });
+}
+
+/* —— 听写 —— */
+function initDictate(q){
+  const slotsBox=$("slots"), tilesBox=$("tiles");
+  const letters=q.w.split("");
+  const pool="aeiourstln";
+  const extra=shuffle([...new Set(pool.split(""))].filter(c=>!letters.includes(c))).slice(0,3);
+  const all=shuffle(letters.concat(extra));
+  let picked=[];
+  tilesBox.innerHTML=all.map((c,i)=>`<button class="tile" data-i="${i}">${c}</button>`).join("");
+  function redraw(){
+    slotsBox.querySelectorAll(".slot").forEach((s,idx)=>{
+      s.textContent=picked[idx]!==undefined?all[picked[idx]]:"";
+      s.classList.toggle("fill",picked[idx]!==undefined);
+    });
+    tilesBox.querySelectorAll(".tile").forEach((t,i)=>t.disabled=picked.includes(i));
+    if(picked.length===q.w.length && !L.answered){
+      L.answered=true;
+      const guess=picked.map(i=>all[i]).join("");
+      if(guess===q.w){ fx("ok"); settle(true,"拼写正确："+q.w); }
+      else { fx("bad"); tilesBox.querySelectorAll(".tile").forEach(t=>t.disabled=true); settle(false,"正确拼写："+q.w+"（"+q.item.combo+"："+q.item.pinyin+"）"); }
+    }
+  }
+  tilesBox.querySelectorAll(".tile").forEach((t,i)=>t.addEventListener("click",()=>{
+    if(L.answered||picked.includes(i)) return;
+    fx("tap"); picked.push(i); redraw();
+  }));
+  $("backspace").addEventListener("click",()=>{ if(L.answered||!picked.length) return; fx("tap"); picked.pop(); redraw(); });
+  $("hintBtn").addEventListener("click",()=>{
+    if(L.answered) return;
+    const need=q.w[picked.length];
+    const idx=[...tilesBox.querySelectorAll(".tile")].findIndex((t,i)=>!picked.includes(i)&&all[i]===need);
+    if(idx>=0){ fx("tap"); picked.push(idx); redraw(); }
+  });
+  redraw();
+}
+
+/* —— 排词成句 —— */
+function initSentArrange(q){
+  const bank=$("sentBank"), built=$("sentBuilt");
+  const tokens=q.tokens;
+  let order=shuffle(tokens.map((_,i)=>i));
+  if(order.every((v,i)=>v===i)) order.reverse();
+  const placed=[];
+  function draw(){
+    bank.innerHTML=order.map(i=>placed.includes(i)?"":`<button class="wchip" data-i="${i}">${tokens[i]}</button>`).join("");
+    built.innerHTML=placed.map(i=>`<button class="wchip built" data-i="${i}">${tokens[i]}</button>`).join("");
+    bank.querySelectorAll(".wchip").forEach(c=>c.addEventListener("click",()=>{
+      if(L.answered) return; fx("tap"); placed.push(+c.dataset.i); draw();
+    }));
+    built.querySelectorAll(".wchip").forEach(c=>c.addEventListener("click",()=>{
+      if(L.answered) return; fx("tap"); placed.splice(placed.indexOf(+c.dataset.i),1); draw();
+    }));
+    if(placed.length===tokens.length && !L.answered){
+      L.answered=true;
+      const ok=placed.every((v,i)=>v===i);
+      if(ok){ fx("ok"); settle(true,""); }
+      else { fx("bad"); settle(false,"正确语序："+q.sentence.en); }
+    }
+  }
+  draw();
+}
+
+/* —— 连连看 —— */
+function initMatch(q){
+  const left=$("mLeft"), right=$("mRight");
+  let selL=null, selR=null, matched=0, wrongTaps=0;
+  q.left.forEach(p=>{
+    const b=document.createElement("button");
+    b.className="mcell en"; b.textContent=p.it.combo; b.dataset.py=p.it.pinyin;
+    left.appendChild(b);
+  });
+  q.right.forEach(p=>{
+    const b=document.createElement("button");
+    b.className="mcell"; b.textContent=p.it.pinyin; b.dataset.py=p.it.pinyin;
+    right.appendChild(b);
+  });
+  function tap(side,btn){
+    if(btn.classList.contains("ok")) return;
+    fx("tap");
+    if(side==="L"){
+      left.querySelectorAll(".mcell").forEach(x=>x.classList.remove("sel")); btn.classList.add("sel"); selL=btn;
+    }else{
+      right.querySelectorAll(".mcell").forEach(x=>x.classList.remove("sel")); btn.classList.add("sel"); selR=btn;
+    }
+    if(selL&&selR){
+      const ok=selL.dataset.py===selR.dataset.py;
+      if(ok){
+        selL.classList.add("ok"); selR.classList.add("ok");
+        selL.classList.remove("sel"); selR.classList.remove("sel");
+        selL=selR=null; matched++; fx("ok");
+        if(matched===q.pairs.length){
+          if(L.answered) return;
+          L.answered=true;
+          settle(wrongTaps===0, wrongTaps===0?"":"有 "+wrongTaps+" 次配错，全对才能拿满奖励哦");
+        }
+      }else{
+        wrongTaps++; fx("bad");
+        const a=selL,b2=selR;
+        a.classList.add("bad"); b2.classList.add("bad");
+        setTimeout(()=>{ a.classList.remove("bad","sel"); b2.classList.remove("bad","sel"); },350);
+        selL=selR=null;
+      }
+    }
+  }
+  left.querySelectorAll(".mcell").forEach(b=>b.addEventListener("click",()=>tap("L",b)));
+  right.querySelectorAll(".mcell").forEach(b=>b.addEventListener("click",()=>tap("R",b)));
+}
+
+/* —— 判分 / 反馈条 —— */
+function settle(ok, body){
+  const feed=$("feedBar");
+  let gained=0;
+  if(ok){
+    L.combo++;
+    gained=2+(L.combo>=3?2:0);
+    L.xp+=gained;
+  }else{
+    L.combo=0; L.mistakes++; L.hearts--;
+    $("heartsBox").innerHTML=Array.from({length:HEARTS},(_,i)=>`<span class="${i<L.hearts?"":"off"}">❤️</span>`).join("");
+  }
+  $("fbTitle").textContent= ok
+    ? (L.combo>=3?`太棒了！🔥 连对 ${L.combo}`:"答对了！") + `　+${gained} XP`
+    : "再想想哦…";
+  $("fbBody").textContent= ok ? (body||"") : body||("正确答案："+correctText(L.qs[L.i]));
+  feed.className="feed show "+(ok?"good":"badf");
+  $("fbGo").textContent = L.hearts<=0 ? "看看结果" : "继续";
+  $("fbGo").onclick=next;
+}
+
+function next(){
+  $("feedBar").className="feed";
+  if(L.hearts<=0){ return finish(false); }
+  L.i++;
+  if(L.i>=L.qs.length) return finish(true);
+  renderQ();
+}
+
+function confetti(){
+  const layer=$("fxLayer"); const colors=["#58cc02","#1cb0f6","#ffc800","#ff86c8","#ff9600"];
+  for(let i=0;i<46;i++){
+    const c=document.createElement("i");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"vw";
+    c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(1.4+Math.random()*1.4)+"s";
+    c.style.animationDelay=Math.random()*.5+"s";
+    layer.appendChild(c);
+    setTimeout(()=>c.remove(),3500);
+  }
+}
+
+function finish(win){
+  const area=$("qArea");
+  $("feedBar").className="feed";
+  $("heartsBox").innerHTML="";
+  if(win){
+    const acc=Math.round((L.qs.length-L.mistakes)/L.qs.length*100);
+    const perfect=L.mistakes===0;
+    if(L.mode){
+      save.modes[L.mode][L.l]=Math.max(save.modes[L.mode][L.l]||0, perfect?2:1);
+    }else{
+      save.stars[key(L.u,L.l)]=Math.max(save.stars[key(L.u,L.l)]||0, perfect?2:1);
+    }
+    save.xp+=10+(perfect?10:0);
+    bumpStreak(); persist();
+    fx("win"); confetti();
+    area.innerHTML=`<div class="overlay">
+      <div class="big">🎉</div>
+      <h2>${perfect?"完美通关！":"关卡完成！"}</h2>
+      <div class="stats">
+        <div class="ostat"><div class="k">总经验</div><div class="v">${save.xp}</div></div>
+        <div class="ostat"><div class="k">准确率</div><div class="v">${acc}%</div></div>
+        <div class="ostat"><div class="k">连击</div><div class="v">🔥${L.combo}</div></div>
+      </div>
+      <div style="font-weight:800;color:#777">${perfect?"🏆 拿到金色奖杯！":"⭐ 拿到星星，全对可拿 🏆"}</div>
+      <div class="row">
+        <button class="btn" id="goHome">继续冒险 →</button>
+        <button class="btn ghost" id="replay">再闯一次</button>
+      </div>
+    </div>`;
+  }else{
+    area.innerHTML=`<div class="overlay">
+      <div class="big">💪</div>
+      <h2 class="lost">红心用完了…</h2>
+      <div style="font-weight:800;color:#777">差一点点！回去看看拼音提示，马上就能过</div>
+      <div class="row">
+        <button class="btn" id="replay2">🔁 再闯一次</button>
+        <button class="btn ghost" id="goHome2">返回地图</button>
+      </div>
+    </div>`;
+  }
+  const back=()=>{ $("lesson").hidden=true; $("home").style.display="flex"; renderHome(); window.scrollTo(0,0); };
+  const again=()=>startLesson(L.u,L.l);
+  ["goHome","goHome2"].forEach(id=>{ const b=$(id); if(b) b.onclick=back; });
+  ["replay","replay2"].forEach(id=>{ const b=$(id); if(b) b.onclick=again; });
+}
+
+/* —— 退出确认 —— */
+$("qQuit").addEventListener("click",()=>{
+  if(L && !L.quitAsk && L.i>0 && L.hearts>0 && L.i<L.qs.length){
+    L.quitAsk=true;
+    $("fbTitle").textContent="要退出吗？";
+    $("fbBody").textContent="本关进度将会丢失";
+    $("fbGo").textContent="继续闯关";
+    $("fbGo").onclick=()=>{ L.quitAsk=false; $("feedBar").className="feed"; $("fbGo").textContent="继续"; $("fbGo").onclick=next; };
+    $("feedBar").className="feed show badf";
+    return;
+  }
+  $("feedBar").className="feed";
+  $("lesson").hidden=true; $("home").style.display="flex"; renderHome();
+});
+
+/* —— 测试钩子 —— */
+window.__dbg=()=>L ? (L.qs[L.i] ? {type:L.qs[L.i].type, q:L.qs[L.i], i:L.i, hearts:L.hearts, xp:L.xp, answered:L.answered} : {finished:true, hearts:L.hearts, xp:L.xp}) : null;
+
+renderHome();
+</script>
+</body>
+</html>

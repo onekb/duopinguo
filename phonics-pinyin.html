@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多拼国 · 用拼音学自然拼读</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1e293b; --muted:#64748b;
+    --line:#e2e8f0; --hl:#e11d48; --ok:#16a34a; --bad:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 240px);
+    color:var(--ink); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:rgba(255,255,255,.88); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); padding:10px 16px;
+  }
+  .hrow{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; max-width:1080px; margin:0 auto;}
+  h1{font-size:20px; margin:0; letter-spacing:.5px}
+  h1 .sub{font-size:12px; color:var(--muted); font-weight:normal; margin-left:8px}
+  .tabs{display:flex; gap:5px; flex-wrap:wrap}
+  .tab{
+    border:1px solid var(--line); background:#fff; border-radius:999px;
+    padding:6px 11px; font-size:13px; cursor:pointer; color:var(--ink);
+  }
+  .tab.active{background:#4f46e5; border-color:#4f46e5; color:#fff}
+  .ctrl{
+    max-width:1080px; margin:8px auto 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    font-size:13px; color:var(--muted);
+  }
+  .ctrl select{max-width:280px; font-size:13px; padding:3px}
+  .ctrl input[type=range]{vertical-align:middle}
+  .ctrl .chk{cursor:pointer; user-select:none}
+  .warn{max-width:1080px;margin:8px auto 0;font-size:13px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:6px 10px}
+  main{max-width:1080px; margin:0 auto; padding:18px 16px 60px}
+  footer{max-width:1080px;margin:0 auto;padding:0 16px 30px;font-size:12px;color:#94a3b8}
+
+  .intro{
+    background:linear-gradient(135deg,#eef2ff,#fdf4ff); border:1px solid #e0e7ff;
+    border-radius:14px; padding:14px 16px; margin-bottom:20px; font-size:14px; line-height:1.8;
+  }
+  .intro b.zq{color:#dc2626}
+  .intro .steps{margin:6px 0 0; padding-left:20px}
+
+  .group{margin-bottom:26px}
+  .ghead{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .ghead h2{font-size:17px; margin:0; display:flex; align-items:center; gap:8px}
+  .gdot{width:12px; height:12px; border-radius:50%; display:inline-block}
+  .gdesc{font-size:13px; color:var(--muted)}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:14px; margin-top:10px}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px 14px 12px; box-shadow:0 1px 3px rgba(15,23,42,.05);
+    display:flex; flex-direction:column; gap:8px; position:relative;
+  }
+  .cardtop{display:flex; align-items:flex-start; gap:8px}
+  .combo{font-size:30px; font-weight:800; letter-spacing:.5px; line-height:1.15; word-break:break-word}
+  .ipa{font-size:13px; color:var(--muted); background:#f1f5f9; border-radius:6px; padding:2px 7px; white-space:nowrap; align-self:center}
+  .star{
+    margin-left:auto; border:none; background:none; font-size:22px; cursor:pointer; color:#cbd5e1; line-height:1;
+  }
+  .star.on{color:#f59e0b}
+  .pinyin{
+    font-size:15px; font-weight:700; border-radius:8px; padding:6px 10px; display:inline-block;
+  }
+  .pinyin.none{color:#b91c1c; background:#fee2e2}
+  .tip{font-size:13px; color:var(--muted); line-height:1.7}
+  .btns{display:flex; gap:8px; flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line); background:#f8fafc; border-radius:999px;
+    padding:6px 13px; font-size:13px; cursor:pointer;
+  }
+  .btn:hover{background:#eef2ff; border-color:#c7d2fe}
+  .btn.main{background:#4f46e5; border-color:#4f46e5; color:#fff}
+  .btn.main:hover{background:#4338ca}
+  .words{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{
+    border:1px solid var(--line); background:#fff; border-radius:8px; padding:5px 10px;
+    font-size:15px; font-family:Georgia,"Times New Roman",serif; cursor:pointer; user-select:none;
+  }
+  .chip:hover{border-color:#4f46e5; background:#eef2ff}
+  .chip .hl{color:var(--hl); font-weight:800; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
+  .words-note{font-size:11px; color:#94a3b8}
+
+  /* 句子页 */
+  .sentRow{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+  .btn2{border:1px solid var(--line);background:#eef2ff;border-radius:50%;width:38px;height:38px;font-size:15px;cursor:pointer;flex:none;color:#4f46e5}
+  .btn2:active{transform:scale(.94)}
+  .sentMain{flex:1}
+  .sen{font-family:Georgia,"Times New Roman",serif;font-size:17px;font-weight:700;line-height:1.9}
+  .sen .sw{cursor:pointer;border-bottom:2px dotted #cbd5e1}
+  .sen .sw:hover{color:#4f46e5}
+  .sentCn{font-size:12.5px;color:var(--muted);margin-top:4px}
+  /* 听写页 */
+  .drillBox{max-width:520px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+  .drillInput{width:100%;font-size:22px;text-align:center;padding:10px;border:2px solid var(--line);border-radius:10px;font-family:Georgia,"Times New Roman",serif}
+  .drillInput:focus{outline:none;border-color:#4f46e5}
+  /* 音节页 */
+  .ruleCard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .ruleCard .rt{color:#4f46e5;font-size:14px}
+  .ruleCard .rd{font-size:13.5px;line-height:1.8;margin-top:4px}
+  .sylRow{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
+  .sylW{font-family:Georgia,"Times New Roman",serif;font-size:17px;font-weight:800;cursor:pointer;flex:1;min-width:110px}
+  .sylW:hover{color:#4f46e5}
+  .sylR{font-size:13.5px;color:#4f46e5;font-weight:800}
+
+  /* 练习 */
+  .quizbox{max-width:600px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:0 2px 8px rgba(15,23,42,.06)}
+  .qbar{height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden; margin-bottom:14px}
+  .qbar i{display:block; height:100%; background:#4f46e5; border-radius:99px; transition:width .3s}
+  .qmeta{font-size:13px; color:var(--muted); margin-bottom:10px; display:flex; justify-content:space-between}
+  .qprompt{font-size:16px; font-weight:700; margin:8px 0 14px; line-height:1.6}
+  .qbig{font-size:40px; font-weight:800; text-align:center; margin:14px 0; letter-spacing:1px}
+  .qopts{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .opt{
+    border:2px solid var(--line); background:#fff; border-radius:12px; padding:13px 10px;
+    font-size:15px; cursor:pointer; line-height:1.5; text-align:center;
+  }
+  .opt:not(:disabled):hover{border-color:#4f46e5; background:#eef2ff}
+  .opt.correct{border-color:var(--ok); background:#f0fdf4}
+  .opt.wrong{border-color:var(--bad); background:#fef2f2}
+  .opt:disabled{cursor:default}
+  .opt .pys{font-size:13px; color:var(--muted)}
+  .qfeed{margin-top:14px; font-size:14px; font-weight:700; min-height:22px}
+  .qfeed.ok{color:var(--ok)} .qfeed.bad{color:var(--bad)}
+  .qnext{margin-top:12px; text-align:center}
+  .qstart{max-width:600px;margin:30px auto 0;text-align:center;color:var(--muted);font-size:14px;line-height:2}
+  .bigbtn{font-size:16px; padding:12px 30px; margin-top:10px}
+  .qend{text-align:center; font-size:18px; font-weight:800; margin:8px 0}
+  .replay{margin-bottom:4px}
+
+  /* 速查表 */
+  table.sheet{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:13px}
+  .sheet th,.sheet td{border-bottom:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top}
+  .sheet th{background:#f1f5f9; font-size:12px; color:var(--muted); position:sticky; top:0}
+  .sheet tr.sect td{background:#eef2ff; font-weight:800; font-size:13px}
+  .sheet .cb{font-weight:800; white-space:nowrap}
+  .sheet .py{color:#4338ca; font-weight:700}
+  .sheet .none{color:#b91c1c}
+  .sheet .wd{font-family:Georgia,"Times New Roman",serif}
+  @media (max-width:640px){
+    .qopts{grid-template-columns:1fr}
+    .combo{font-size:26px}
+  }
+  @media print{
+    header,footer,.intro,.btns,.star{display:none!important}
+    body{background:#fff}
+    .card{break-inside:avoid; box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>🐯 多拼国<span class="sub">用拼音学自然拼读 · Phonics × Pinyin</span></h1>
+    <nav class="tabs">
+      <button class="tab active" data-tab="learn">📚 学习</button>
+      <button class="tab" data-tab="sent">📖 句子</button>
+      <button class="tab" data-tab="dict">✍️ 听写</button>
+      <button class="tab" data-tab="syl">🧩 音节</button>
+      <button class="tab" data-tab="quiz">🎯 练习</button>
+      <button class="tab" data-tab="sheet">📋 速查</button>
+    </nav>
+  </div>
+  <div class="ctrl">
+    <label>🗣 语音 <select id="voiceSel"></select></label>
+    <label>语速 <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="0.75"> <b id="rateVal">0.75</b></label>
+    <label class="chk"><input type="checkbox" id="hideDone"> 隐藏已掌握</label>
+  </div>
+  <div id="noVoice" class="warn" hidden>⚠️ 没检测到英语语音包：请用 Safari / Chrome 打开本页；手机请勿在微信内打开，用系统浏览器。</div>
+</header>
+<main>
+  <section id="view-learn"></section>
+  <section id="view-sent" hidden></section>
+  <section id="view-dict" hidden></section>
+  <section id="view-syl" hidden></section>
+  <section id="view-quiz" hidden></section>
+  <section id="view-sheet" hidden></section>
+</main>
+<footer>发音由浏览器语音合成（Web Speech API）生成，个别"音素试听"可能与标准音略有偏差，请以例词读音为主，建议配合词典 App 的真人发音核对。</footer>
+
+<script>
+"use strict";
+
+/* ================= 数据 =================
+   combo: 字母组合  ipa: 音标  pinyin: 拼音近似提示
+   tip: 口型/要领  cue: 点击"组合音"时朗读的文本
+   re: 在例词中高亮字母组合的正则  words: 例词 */
+const GROUPS = [
+{
+  id:"short", name:"① 短元音", color:"#f59e0b",
+  desc:"一个元音字母在闭音节里发\"短音\"。5 个都有拼音近似，先从这里建立信心！",
+  items:[
+    {combo:"a", ipa:"/æ/", pinyin:"≈ 拼音 a（啊），嘴更扁", re:"a", cue:"aah",
+     tip:"嘴张大像说\"啊\"，但嘴角向两边拉、舌位靠前。拼音里没有完全一样的音，多点喇叭跟读。",
+     words:["cat","hat","map","bag","apple"]},
+    {combo:"e", ipa:"/e/", pinyin:"≈ 拼音 ei 的前半段（诶，不带 i）", re:"e", cue:"eh",
+     tip:"像说拼音\"诶\"，但嘴停在半开就停住，不要滑到 i。",
+     words:["bed","pen","egg","ten","red"]},
+    {combo:"i", ipa:"/ɪ/", pinyin:"≈ 拼音 i（衣），短促放松", re:"i", cue:"ih",
+     tip:"发拼音\"衣\"，但更短促、嘴角不用那么用力。",
+     words:["sit","big","fish","pig","milk"]},
+    {combo:"o", ipa:"/ɒ/", pinyin:"≈ 拼音 o（喔）", re:"o", cue:"ah",
+     tip:"圆唇说\"喔\"，短促。美式发音里它更接近\"啊\"（hot 听起来像 /hɑt/）。",
+     words:["hot","dog","box","fox","top"]},
+    {combo:"u", ipa:"/ʌ/", pinyin:"≈ 拼音 a（啊）的短促版", re:"u", cue:"uh",
+     tip:"放松、短促地说\"啊\"。注意：千万不要读成拼音 u（乌）！",
+     words:["bus","cup","sun","run","duck"]},
+  ]
+},
+{
+  id:"cons", name:"② 基础辅音：和拼音几乎一样", color:"#8b5cf6",
+  desc:"b p m f d t n l g k h s z w 直接用拼音读就行。重点记下面几个\"不一样\"的。",
+  items:[
+    {combo:"b p m f d t n l g k s z w", ipa:"同拼音", pinyin:"直接用拼音发音", re:"", cue:"",
+     tip:"这些辅音和拼音声母基本一致。小差别：p / t / k 送气更强；h 更轻，像哈气。",
+     words:["bed","pen","map","dog","kite"]},
+    {combo:"j", ipa:"/dʒ/", pinyin:"≈ 拼音 zh（知），要振动声带", re:"j", cue:"jam",
+     tip:"像\"知\"的声母，但要振动声带、双唇略圆、短促不送气。",
+     words:["jam","jet","jump","jacket","job"]},
+    {combo:"g（软音）", ipa:"/dʒ/", pinyin:"≈ 拼音 zh（知），要振动声带", re:"g", cue:"gym",
+     tip:"g 在 e / i / y 前常发软音（否则发拼音 g）：gem、giant、gym。",
+     words:["gym","giraffe","gem","giant","orange"]},
+    {combo:"c（软音）", ipa:"/s/", pinyin:"= 拼音 s（丝）", re:"c", cue:"ice",
+     tip:"c 在 e / i / y 前发 s（否则发拼音 k）：city、face、cycle。",
+     words:["city","face","ice","circle","nice"]},
+    {combo:"y（当辅音）", ipa:"/j/", pinyin:"= 拼音 y（爷的声母）", re:"y", cue:"yes",
+     tip:"在音节开头时就是拼音 y：yes ≈ \"爷斯\"快读。",
+     words:["yes","you","yellow","yogurt","young"]},
+    {combo:"r", ipa:"/r/", pinyin:"拼音没有！舌尖卷起、不碰任何地方", re:"r", cue:"red",
+     tip:"发\"若 ruo\"但舌尖向后卷、悬空不碰上颚，双唇略圆。拼音没有这个音，多跟读。",
+     words:["red","run","rabbit","read","rain"]},
+    {combo:"l", ipa:"/l/", pinyin:"= 拼音 l", re:"l", cue:"leg",
+     tip:"和拼音 l 相同。词尾时舌尖仍抵住上齿龈不要松开：feel、milk。",
+     words:["leg","like","ball","milk","feel"]},
+    {combo:"v", ipa:"/v/", pinyin:"拼音没有！上齿咬下唇 + 振动声带", re:"v", cue:"van",
+     tip:"像拼音 f，但上齿轻咬下唇并振动声带。f 不振动，v 振动——把手放喉咙上能感觉到。",
+     words:["very","five","love","seven","van"]},
+    {combo:"x", ipa:"/ks/", pinyin:"= 拼音 k + s 快连", re:"x", cue:"box",
+     tip:"读成\"克斯\"快速连成一个音。",
+     words:["box","fox","six","exit","x-ray"]},
+  ]
+},
+{
+  id:"long", name:"③ 长元音（魔法 e / 元音组合）", color:"#10b981",
+  desc:"\"元音+辅音+e\"时 e 不发音、元音读回字母本名；ai/ay 等组合也一样。这些音拼音全都有！",
+  items:[
+    {combo:"a_e · ai · ay", ipa:"/eɪ/", pinyin:"= 拼音 ei（欸）", re:"(a[^aeiouy]*e|ai|ay)", cue:"ay",
+     tip:"和拼音 ei 一模一样。a_e 例：cake；ai 例：rain；ay 例：day。",
+     words:["cake","rain","day","name","play"]},
+    {combo:"e_e · ee · ea", ipa:"/iː/", pinyin:"= 拼音 i（衣）", re:"(e[^aeiouy]*e|ee|ea)", cue:"ee",
+     tip:"和拼音 i 相同，读长一点。",
+     words:["see","eat","team","these","green"]},
+    {combo:"i_e · igh · y", ipa:"/aɪ/", pinyin:"= 拼音 ai（爱）", re:"(i[^aeiouy]*e|igh|y)", cue:"eye",
+     tip:"和拼音 ai 一模一样。i_e 例：bike；igh 例：night；词尾 y 例：my。",
+     words:["bike","night","my","time","fly"]},
+    {combo:"o_e · oa · ow", ipa:"/oʊ/", pinyin:"= 拼音 ou（欧）", re:"(o[^aeiouy]*e|oa|ow)", cue:"oh",
+     tip:"和拼音 ou 相同。ow 有两种读音：snow 是\"欧\"，cow 是\"凹\"（见⑥），靠记。",
+     words:["home","boat","snow","nose","window"]},
+    {combo:"u_e · ue · ew", ipa:"/uː/ 或 /juː/", pinyin:"= 拼音 u（乌）/ iu（优）", re:"(u[^aeiouy]*e|ue|ew)", cue:"oo",
+     tip:"blue 读\"乌\"；cute、new 前面带一点\"衣\"，读\"优\"。",
+     words:["blue","cute","new","flute","rescue"]},
+  ]
+},
+{
+  id:"digraph", name:"④ 辅音组合（两个字母一个音）", color:"#ef4444",
+  desc:"两个辅音字母抱团只发一个音，见到整组一起认。",
+  items:[
+    {combo:"sh", ipa:"/ʃ/", pinyin:"≈ 拼音 x 和 sh 之间，唇更圆", re:"sh", cue:"shh",
+     tip:"介于拼音 x（西）和 sh（诗）之间：舌面抬高，双唇略圆往前突。",
+     words:["she","ship","fish","shop","wash"]},
+    {combo:"ch · tch", ipa:"/tʃ/", pinyin:"≈ 拼音 q，双唇略圆", re:"(ch|tch)", cue:"chip",
+     tip:"像拼音 q（七的声母），但双唇略圆、短促送气。不要读成拼音 ch（吃）！",
+     words:["chair","lunch","watch","teacher","match"]},
+    {combo:"th（清）", ipa:"/θ/", pinyin:"拼音没有！舌尖伸到齿间吹气", re:"th", cue:"thin",
+     tip:"舌尖轻轻放在上下齿之间吹气，声带不振动。中文里完全没有这个音，一定多跟读。",
+     words:["three","thank","bath","teeth","month"]},
+    {combo:"th（浊）", ipa:"/ð/", pinyin:"拼音没有！舌尖伸到齿间+振动声带", re:"th", cue:"this",
+     tip:"口型和清 th 一样，但要振动声带。the、this、mother 都是它。",
+     words:["this","that","mother","brother","they"]},
+    {combo:"ph", ipa:"/f/", pinyin:"= 拼音 f", re:"ph", cue:"phone",
+     tip:"ph 和 f 的读音完全一样，来自希腊词源。",
+     words:["phone","photo","elephant","dolphin","graph"]},
+    {combo:"wh", ipa:"/w/", pinyin:"= 拼音 w", re:"wh", cue:"we",
+     tip:"和拼音 w 相同，圆唇。",
+     words:["what","white","wheel","when","whale"]},
+    {combo:"ck", ipa:"/k/", pinyin:"= 拼音 k", re:"ck", cue:"cat",
+     tip:"ck 就是 k 的另一种写法，出现在短元音后面。",
+     words:["duck","clock","black","rock","chicken"]},
+    {combo:"ng", ipa:"/ŋ/", pinyin:"= 拼音后鼻音 ang/eng 的尾音", re:"ng", cue:"sing",
+     tip:"就是拼音\"昂 / Eng\"最后那个后鼻音，只发鼻音、不带韵母。",
+     words:["sing","king","long","ring","morning"]},
+    {combo:"qu", ipa:"/kw/", pinyin:"= 拼音 k + u 快连", re:"qu", cue:"queen",
+     tip:"q 和 u 永远在一起，读\"阔\"去掉 o 的感觉。",
+     words:["queen","quick","quit","quiet","quack"]},
+  ]
+},
+{
+  id:"r", name:"⑤ r 控制元音（ar / or / er…）", color:"#6366f1",
+  desc:"元音后面跟 r，读音被 r \"接管\"。美式发音要卷舌！",
+  items:[
+    {combo:"ar", ipa:"/ɑːr/", pinyin:"= 拼音 a（啊）+ 卷舌", re:"ar", cue:"are",
+     tip:"先说\"啊\"，再把舌尖卷起来收尾，\"啊儿\"连成一个音。",
+     words:["car","star","farm","park","garden"]},
+    {combo:"or", ipa:"/ɔːr/", pinyin:"≈ 拼音 o（喔）+ 卷舌", re:"or", cue:"or",
+     tip:"圆唇说\"喔\"然后卷舌收尾，类似\"哦儿\"。",
+     words:["for","horse","fork","born","morning"]},
+    {combo:"er · ir · ur", ipa:"/ɜːr/", pinyin:"拼音没有！像\"鹅\"+ 卷舌", re:"(er|ir|ur)", cue:"her",
+     tip:"先发\"鹅\"，舌位居中放松，然后卷舌。er / ir / ur 在重读音节里都发这个音，出现频率极高。",
+     words:["her","bird","nurse","sister","turn"]},
+  ]
+},
+{
+  id:"vowel2", name:"⑥ 其他重要元音组合", color:"#0ea5e9",
+  desc:"见面直接读的组合，背下来就能读对一大半单词。",
+  items:[
+    {combo:"oo（长）", ipa:"/uː/", pinyin:"= 拼音 u（乌）", re:"oo", cue:"oo",
+     tip:"和拼音 u 相同，读长一点：moon、food。",
+     words:["moon","food","zoo","school","afternoon"]},
+    {combo:"oo（短）", ipa:"/ʊ/", pinyin:"≈ 拼音 u（乌）的短促松版", re:"oo", cue:"book",
+     tip:"比\"乌\"更短更松：book、look。k 前面的 oo 常发这个短音。",
+     words:["book","look","good","foot","cook"]},
+    {combo:"ou · ow", ipa:"/aʊ/", pinyin:"= 拼音 ao（凹）", re:"(ou|ow)", cue:"ow",
+     tip:"和拼音 ao 一模一样。ow 发\"凹\"的常见词：cow、now、how。",
+     words:["cow","house","out","now","mouse"]},
+    {combo:"oi · oy", ipa:"/ɔɪ/", pinyin:"≈ \"哦-衣\"连读", re:"(oi|oy)", cue:"oy",
+     tip:"先圆唇\"哦\"再快速滑到\"衣\"。词中用 oi（coin），词尾用 oy（boy）。",
+     words:["boy","coin","toy","oil","point"]},
+    {combo:"au · aw", ipa:"/ɔː/", pinyin:"≈ 拼音 ao（凹），嘴唇更圆", re:"(au|aw)", cue:"aw",
+     tip:"比拼音\"凹\"嘴唇更圆更紧，收在圆唇上。",
+     words:["saw","autumn","draw","paw","sauce"]},
+    {combo:"ea（短）", ipa:"/e/", pinyin:"≈ 拼音 ei 前半段", re:"ea", cue:"eh",
+     tip:"ea 大多发长音\"衣\"（eat），但也常发短 e，这部分靠记。",
+     words:["head","bread","breakfast","weather","ready"]},
+  ]
+},
+{
+  id:"r2", name:"⑦ 进阶 r 组合与长音拼法", color:"#0ea5a3",
+  desc:"更多\"见面直接读\"的组合：认完这些，生词表里的疑难字基本都能拼。",
+  items:[
+    {combo:"air · are", ipa:"/eər/", pinyin:"拼音没有！像\"唉\"+卷舌", re:"(air|are)", cue:"hair",
+     tip:"先说\"诶\"，再卷舌收\"儿\"，中间不停。air 和 are 读音完全一样：hair、care。",
+     words:["air","hair","chair","fair","care"]},
+    {combo:"ear · eer · ere", ipa:"/ɪər/", pinyin:"拼音没有！像\"衣\"+卷舌", re:"(ear|eer|ere)", cue:"year",
+     tip:"先发\"衣\"再卷舌收\"儿\"：year、deer、here。",
+     words:["year","ear","hear","deer","career"]},
+    {combo:"our · ower", ipa:"/aʊər/", pinyin:"拼音没有！像\"凹\"+卷舌", re:"(our|ower)", cue:"hour",
+     tip:"先\"凹\"再卷舌，一气呵成：our、flower、power。",
+     words:["our","flower","power","tower","sour"]},
+    {combo:"ie", ipa:"/aɪ/", pinyin:"= 拼音 ai（爱）", re:"ie", cue:"pie",
+     tip:"ie 大多发\"爱\"：pie、tie；少数词发\"衣\"（field），遇到再记。",
+     words:["pie","tie","lie","fried","cried"]},
+    {combo:"ey", ipa:"/iː/", pinyin:"= 拼音 i（衣）", re:"ey", cue:"key",
+     tip:"词尾 ey 常发\"衣\"：monkey、money、turkey。例外：hey、they 发\"欸\"。",
+     words:["monkey","money","honey","key","turkey"]},
+    {combo:"eigh · ei", ipa:"/eɪ/", pinyin:"= 拼音 ei（欸）", re:"(eigh|ei)", cue:"eight",
+     tip:"还是\"欸\"的音：eight、neighbor、weigh。",
+     words:["eight","neighbor","weigh","sleigh","vein"]},
+    {combo:"oe", ipa:"/oʊ/", pinyin:"= 拼音 ou（欧）", re:"oe", cue:"toe",
+     tip:"词尾 oe 发\"欧\"：toe、goes、heroes。",
+     words:["toe","hoe","goes","heroes","tomatoes"]},
+  ]
+},
+{
+  id:"special", name:"⑧ 无声字母与特殊读法", color:"#e11d63",
+  desc:"英文的\"暗号\"：字母在却不发音，或换了场合变音。认全它们，拼读准确率大增。",
+  items:[
+    {combo:"kn", ipa:"/n/", pinyin:"k 无声！= 拼音 n", re:"kn", cue:"knee",
+     tip:"kn 开头的词 k 不发音，直接读 n：know、knee、knife。",
+     words:["know","knee","knife","knock","knit"]},
+    {combo:"wr", ipa:"/r/", pinyin:"w 无声！读英语卷舌 r", re:"wr", cue:"write",
+     tip:"wr 开头 w 不发音：write、wrong、wrist。",
+     words:["write","wrong","wrist","wrap","wrench"]},
+    {combo:"mb（词尾）", ipa:"/m/", pinyin:"b 无声！= 拼音 m（呣）", re:"mb", cue:"thumb",
+     tip:"词尾 mb 的 b 不发音：climb、lamb、thumb。",
+     words:["climb","lamb","thumb","comb","crumb"]},
+    {combo:"gh", ipa:"/g/ /f/ 无声", pinyin:"三种读法：g / f / 不发音", re:"gh", cue:"ghost",
+     tip:"ghost 读 g；laugh、tough 读 f；night、light 里完全不发音——高频词靠记。",
+     words:["ghost","laugh","night","tough","light"]},
+    {combo:"ch → /k/", ipa:"/k/", pinyin:"= 拼音 k", re:"ch", cue:"school",
+     tip:"ch 在 s 后或希腊词源里读 k：school、echo、stomach。",
+     words:["school","chorus","stomach","echo","scheme"]},
+    {combo:"wa", ipa:"/wɒ/ /wɑ/", pinyin:"≈ 拼音 o（喔）：w 后的 a 变圆唇", re:"wa", cue:"want",
+     tip:"wa 常发\"喔\"（美音更接近\"啊\"）：want、wash、watch。不要读成\"外\"！",
+     words:["want","wash","watch","wander","waffle"]},
+    {combo:"al · alk", ipa:"/ɔː/", pinyin:"≈ 拼音 ao（凹）", re:"al", cue:"ball",
+     tip:"l 前面的 a 常变\"凹\"：ball、talk、walk、small。",
+     words:["ball","tall","talk","walk","small"]},
+    {combo:"old · ind · ild", ipa:"/oʊld/ /aɪnd/", pinyin:"old≈\"欧\"；ind·ild≈\"爱\"", re:"(old|ild|ind)", cue:"cold",
+     tip:"特殊长音：cold、old 发\"欧\"；find、kind、wild 发\"爱\"。",
+     words:["cold","old","find","kind","wild"]},
+  ]
+},
+{
+  id:"blends", name:"⑨ 辅音连缀与词缀", color:"#65a30d",
+  desc:"两个辅音连读是拼音里没有的技能：快连、中间不加\"呃\"。词缀音块认得越多，长词越不怕。",
+  items:[
+    {combo:"st·sp·sk·sm·sn·sw", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(st|sp|sk|sm|sn|sw)", cue:"stop",
+     tip:"中间不要加\"呃\"：stop 不是\"斯-托普\"，s 和 t 一口气连完。",
+     words:["stop","swim","sky","small","snow"]},
+    {combo:"bl·cl·fl·gl·pl·sl", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(bl|cl|fl|gl|pl|sl)", cue:"blue",
+     tip:"同样别加\"呃\"：blue 是 b-l-ue 一口气。",
+     words:["blue","black","clock","plane","glue","sleep"]},
+    {combo:"br·cr·dr·fr·gr·pr·tr", ipa:"辅音连缀", pinyin:"拼音没有！两个声母快连", re:"(br|cr|dr|fr|gr|pr|tr)", cue:"bread",
+     tip:"tr、dr 的舌尖别翘成\"吃/知\"，保持 t/d 的位置再卷舌。",
+     words:["bread","cry","dream","frog","green","tree"]},
+    {combo:"mp·nd·nk·nt·ft", ipa:"词尾连缀", pinyin:"= 拼音 m/n + 尾辅音快连", re:"(mp|nd|nk|nt|ft)", cue:"hand",
+     tip:"结尾的辅音也要发出来：hand 的 d、desk 的 k 不要吞掉。",
+     words:["hand","lamp","sink","plant","gift"]},
+    {combo:"tion · sion", ipa:"/ʃən/ /ʒən/", pinyin:"拼音没有！≈ 轻读\"申\"；sion 带 /ʒ/", re:"(tion|sion)", cue:"nation",
+     tip:"轻读\"申\"（去掉 e）：nation、station。measure、usually 里的 s 就是 44 音里剩下的 /ʒ/——像\"日\"但舌头更平。",
+     words:["nation","station","vacation","action","lotion"]},
+    {combo:"ture", ipa:"/tʃər/", pinyin:"≈ \"彻儿\"轻读", re:"ture", cue:"picture",
+     tip:"≈\"彻儿\"连读：picture、future、nature。",
+     words:["picture","future","nature","lecture","adventure"]},
+    {combo:"le（词尾）", ipa:"/əl/", pinyin:"≈ 轻读的\"勒\"", re:"le$", cue:"little",
+     tip:"词尾 le = 轻读 /əl/，舌尖抵上齿龈：little、apple、table。",
+     words:["little","apple","table","candle","purple"]},
+  ]
+},
+{
+  id:"sight", name:"⑩ 高频词 Sight Words（不规则词）", color:"#475569",
+  desc:"最常用的词偏偏最不守规则——用拼音整体记，见一次认一次，终身受用。",
+  items:[
+    {combo:"one · come · some · love", ipa:"/ʌ/", pinyin:"o 读\"啊\"！one ≈ 拼音 wan（万）", re:"o", cue:"one",
+     tip:"这些词里的 o 发短\"啊\"：one 读\"万\"、come 读\"卡姆\"、love 读\"勒夫\"——最高频的例外。",
+     words:["one","come","some","love","done"]},
+    {combo:"two · who", ipa:"/uː/", pinyin:"w 无声！two ≈ tu（图）、who ≈ hu（呼）", re:"(two|who)", cue:"two",
+     tip:"w 完全不发音：two 读\"图\"、who/whose 读\"呼\"。",
+     words:["two","who","whose","whom"]},
+    {combo:"said · says · again", ipa:"/sɛd/ /sɛz/", pinyin:"ai 只发短\"诶\"：said ≈ \"赛德\"快读", re:"(ai|ay)", cue:"said",
+     tip:"said 读\"赛德\"（不是\"赛-亿-德\"）、says 读\"赛兹\"、again 读\"额盖恩\"快读——ai 都缩成短诶。",
+     words:["said","says","again","against"]},
+    {combo:"you · could · should · would", ipa:"/juː/ /ʊ/", pinyin:"you ≈ 拼音 iu（优）；ould ≈ \"乌德\"", re:"(you|ould)", cue:"you",
+     tip:"you 读\"优\"；could/should/would 的 l 无声、ou 读\"乌\"：≈\"库德/树德/乌德\"。",
+     words:["you","your","could","should","would"]},
+    {combo:"y（词尾）", ipa:"/i/", pinyin:"= 拼音 i（衣）", re:"y$", cue:"happy",
+     tip:"多音节词尾的 y 读\"衣\"：very、baby、happy、family——这个规则能覆盖上百个词。",
+     words:["very","baby","happy","family","city"]},
+    {combo:"there · their · here", ipa:"/ðeər/ /hɪər/", pinyin:"拼音没有！there/their ≈ \"戴儿\"", re:"(there|their|here)", cue:"there",
+     tip:"there 和 their 完全同音\"戴儿\"（卷舌）；here ≈ \"黑儿\"。where 也是这一家。",
+     words:["there","their","here","where"]},
+    {combo:"friend · great · break", ipa:"/ɛ/ /eɪ/", pinyin:"friend ≈ \"弗伦德\"；great ≈ \"格瑞特\"", re:"(friend|great|break|steak)", cue:"friend",
+     tip:"friend 的 ie 发短\"诶\"；great/break/steak 的 ea 发\"欸\"——都是高频例外，整体记。",
+     words:["friend","great","break","steak"]},
+    {combo:"of · to · do", ipa:"/əv/ /tuː/ /duː/", pinyin:"of 轻读\"额夫\"；to ≈ tu（图）；do ≈ du（都）", re:"(of|to|do)", cue:"of",
+     tip:"of 是英语第一高频词，轻读\"额夫\"（不要读\"奥夫\"）；to、do 读\"图、都\"。",
+     words:["of","to","do","into"]},
+  ]
+}
+];
+
+/* ================= 发音 ================= */
+let voice = null;
+const voiceSel = document.getElementById("voiceSel");
+const rateInput = document.getElementById("rate");
+const rateVal = document.getElementById("rateVal");
+
+function loadVoices(){
+  const all = speechSynthesis.getVoices().filter(v => /^en([-_]|$)/i.test(v.lang));
+  if(!all.length){ document.getElementById("noVoice").hidden = !speechSynthesis.getVoices().length; return; }
+  document.getElementById("noVoice").hidden = true;
+  const cur = voiceSel.value;
+  voiceSel.innerHTML = "";
+  for(const v of all){
+    const o = document.createElement("option");
+    o.value = v.voiceURI; o.textContent = v.name + " (" + v.lang + ")";
+    voiceSel.appendChild(o);
+  }
+  const saved = localStorage.getItem("dpg-voice");
+  const want = all.find(v => v.voiceURI === (cur || saved));
+  voice = want || all.find(v => /en[-_]US/i.test(v.lang) && /samantha|alex|google|ava|allison|susan|zira|aria|jenny/i.test(v.name)) || all.find(v => /en[-_]US/i.test(v.lang)) || all[0];
+  voiceSel.value = voice.voiceURI;
+}
+voiceSel.addEventListener("change", () => {
+  voice = speechSynthesis.getVoices().find(v => v.voiceURI === voiceSel.value) || voice;
+  localStorage.setItem("dpg-voice", voiceSel.value);
+  speak("hello");
+});
+rateInput.addEventListener("input", () => rateVal.textContent = rateInput.value);
+if(window.speechSynthesis){
+  speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+  setTimeout(loadVoices, 600);
+}else{
+  document.getElementById("noVoice").hidden = false;
+}
+
+let chanting = false, stopChant = false, ttsUnlocked = false;
+function speak(text, rateOverride){
+  return new Promise(res => {
+    if(!text || !window.speechSynthesis) return res();
+    const u = new SpeechSynthesisUtterance(text);
+    if(voice){ u.voice = voice; u.lang = voice.lang; } else { u.lang = "en-US"; }
+    u.rate = rateOverride || parseFloat(rateInput.value);
+    // 兜底：个别浏览器取消朗读时不触发 onend，超时保证流程继续
+    const guard = setTimeout(res, Math.max(4000, text.length * 400));
+    u.onend = () => { clearTimeout(guard); res(); };
+    u.onerror = () => { clearTimeout(guard); res(); };
+    if(!ttsUnlocked){
+      // iOS Safari 要求首次朗读在用户手势内同步调用
+      ttsUnlocked = true;
+      speechSynthesis.speak(u);
+      return;
+    }
+    if(speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    setTimeout(() => speechSynthesis.speak(u), 15);
+  });
+}
+const pause = ms => new Promise(r => setTimeout(r, ms));
+
+async function chant(item, btn){
+  if(chanting){
+    stopChant = true;
+    if(window.speechSynthesis) speechSynthesis.cancel(); // 立即打断当前音
+    return;
+  }
+  chanting = true; stopChant = false;
+  const old = btn.textContent;
+  btn.textContent = "⏹ 停止"; btn.classList.add("main");
+  const gap = ms => new Promise(r => {          // 可被打断的间隔
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if(stopChant || Date.now() - t0 >= ms){ clearInterval(iv); r(); }
+    }, 80);
+  });
+  await speak(item.cue, 0.7); await gap(1300);
+  for(const w of item.words){
+    if(stopChant) break;
+    await speak(w, 0.7); await gap(1500);
+  }
+  chanting = false; stopChant = false;
+  btn.textContent = old; btn.classList.remove("main");
+}
+
+/* ================= 已掌握标记 ================= */
+let mastered = new Set(JSON.parse(localStorage.getItem("dpg-mastered") || "[]"));
+function saveMastered(){ localStorage.setItem("dpg-mastered", JSON.stringify([...mastered])); }
+function keyOf(gid, i){ return gid + ":" + i; }
+
+/* ================= 学习视图 ================= */
+function hlWord(word, re){
+  if(!re) return word;
+  return word.replace(new RegExp(re), m => '<span class="hl">' + m + "</span>");
+}
+
+function renderLearn(){
+  const hideDone = document.getElementById("hideDone").checked;
+  const root = document.getElementById("view-learn");
+  let html = `
+  <div class="intro">
+    <b>🐯 学习方法（每张卡片 4 步）：</b>
+    <ol class="steps">
+      <li>看 <b>拼音近似</b> —— 大部分发音拼音里都有，直接照着读；</li>
+      <li>点 <b>🔊 组合音</b> 听发音，跟读 3 遍（可先调慢语速）；</li>
+      <li>点例词听整词，<span style="color:var(--hl);font-weight:700">红色</span>字母就是该组合；</li>
+      <li>掌握了点 <b>☆</b>，然后去【🎯 练习】检验。</li>
+    </ol>
+    拼音里<b class="zq">没有对应</b>、需要重点跟读的音（卡片标红）：th（清/浊）、v、æ（短 a）、ɜːr（er/ir/ur）、r 的卷舌，以及进阶篇里的辅音连缀（st·bl…）、/ʒ/ 和各种\"+卷舌\"组合。
+  </div>`;
+  for(const g of GROUPS){
+    html += `<div class="group"><div class="ghead">
+      <h2><span class="gdot" style="background:${g.color}"></span>${g.name}</h2>
+      <span class="gdesc">${g.desc}</span></div><div class="grid">`;
+    g.items.forEach((it, i) => {
+      const k = keyOf(g.id, i);
+      const done = mastered.has(k);
+      if(hideDone && done) return;
+      const nonePinyin = it.pinyin.includes("没有");
+      const chips = it.words.map(w => `<span class="chip" data-say="${w}">${hlWord(w, it.re)}</span>`).join("");
+      html += `<div class="card" data-key="${k}">
+        <div class="cardtop">
+          <div class="combo" style="color:${g.color}">${it.combo}</div>
+          <span class="ipa">${it.ipa}</span>
+          <button class="star ${done ? "on" : ""}" title="标记已掌握">${done ? "★" : "☆"}</button>
+        </div>
+        <div><span class="pinyin ${nonePinyin ? "none" : ""}" style="${nonePinyin ? "" : "color:" + g.color + ";background:" + g.color + "1a"}">${it.pinyin}</span></div>
+        <div class="tip">💡 ${it.tip}</div>
+        <div class="btns">
+          ${it.cue ? `<button class="btn main" data-cue="${it.cue}">🔊 组合音</button>` : ""}
+          <button class="btn" data-chant="1">▶ 跟读模式</button>
+        </div>
+        <div class="words">${chips}</div>
+        <div class="words-note">点例词发音 · 红色字母 = 该组合</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+  root.innerHTML = html;
+
+  root.querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
+    stopChant = true; speak(ch.dataset.say);
+  }));
+  root.querySelectorAll("[data-cue]").forEach(b => b.addEventListener("click", () => {
+    stopChant = true; speak(b.dataset.cue);
+  }));
+  root.querySelectorAll("[data-chant]").forEach(b => b.addEventListener("click", () => {
+    const card = b.closest(".card");
+    const idx = +card.dataset.key.split(":")[1];
+    const gid = card.dataset.key.split(":")[0];
+    chant(GROUPS.find(g => g.id === gid).items[idx], b);
+  }));
+  root.querySelectorAll(".star").forEach(s => s.addEventListener("click", () => {
+    const k = s.closest(".card").dataset.key;
+    if(mastered.has(k)){ mastered.delete(k); s.textContent = "☆"; s.classList.remove("on"); }
+    else { mastered.add(k); s.textContent = "★"; s.classList.add("on"); }
+    saveMastered();
+  }));
+}
+document.getElementById("hideDone").addEventListener("change", renderLearn);
+
+/* ================= 练习视图 ================= */
+const QN = 10;
+let quiz = null;
+
+function shuffle(a){ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
+
+function buildQuiz(){
+  const entries = [];
+  GROUPS.forEach(g => g.items.forEach(it => entries.push({g, it})));
+  const qs = shuffle([...entries]).slice(0, QN).map(e => {
+    const type = pick(["hear-word", "combo-pinyin", "hear-combo"]);
+    if(type === "hear-word"){
+      let opts = shuffle([...e.it.words]).slice(0, 4);
+      if(opts.length < 4){
+        const pool = shuffle(entries.flatMap(x => x.it.words)).filter(w => !opts.includes(w));
+        opts = shuffle(opts.concat(pool.slice(0, 4 - opts.length)));
+      }
+      return {type, target: e.it, word: pick(opts), options: shuffle([...opts])};
+    }
+    if(type === "combo-pinyin"){
+      const others = shuffle(entries.filter(x => x.it !== e.it && x.it.pinyin !== e.it.pinyin).map(x => x.it.pinyin)).slice(0, 3);
+      return {type, target: e.it, options: shuffle([e.it.pinyin, ...others])};
+    }
+    const sameGroup = GROUPS.find(g => g.id === e.g.id).items.filter(x => x !== e.it).map(x => x.combo);
+    let distract = shuffle(sameGroup).slice(0, 3);
+    if(distract.length < 3){
+      distract = distract.concat(shuffle(entries.filter(x => x.g.id !== e.g.id).map(x => x.it.combo)).slice(0, 3 - distract.length));
+    }
+    return {type, target: e.it, word: pick(e.it.words), options: shuffle([e.it.combo, ...distract])};
+  });
+  quiz = {qs, i: 0, score: 0, answered: false};
+}
+
+function renderQuiz(){
+  const root = document.getElementById("view-quiz");
+  if(!quiz){ quiz = null; }
+  if(!quiz){
+    root.innerHTML = `<div class="qstart">
+      每轮 ${QN} 题，三种题型随机出现：<br>
+      🎧 听单词选词 · 🔤 看组合选拼音提示 · 🎧 听词判断组合<br>
+      <button class="btn main bigbtn" id="qStart">开始练习</button>
+    </div>`;
+    document.getElementById("qStart").addEventListener("click", () => { buildQuiz(); renderQuiz(); });
+    return;
+  }
+  if(quiz.i >= quiz.qs.length){
+    const s = quiz.score, n = quiz.qs.length;
+    const msg = s >= n * 0.9 ? "太厉害了，可以进入下一组组合了！🎉" :
+                s >= n * 0.7 ? "不错不错，错的几题回去多听几遍～" :
+                s >= n * 0.5 ? "继续加油，建议把错的卡片点⭐跟读模式再听一轮。" :
+                "别灰心，回到学习页把每张卡的跟读模式过一遍再来。";
+    root.innerHTML = `<div class="quizbox">
+      <div class="qend">得分：${s} / ${n}</div>
+      <p style="text-align:center;color:var(--muted);font-size:14px">${msg}</p>
+      <div class="qnext"><button class="btn main bigbtn" id="qAgain">再来一轮</button>
+      <button class="btn bigbtn" id="qBack">返回开始页</button></div>
+    </div>`;
+    document.getElementById("qAgain").addEventListener("click", () => { buildQuiz(); renderQuiz(); });
+    document.getElementById("qBack").addEventListener("click", () => { quiz = null; renderQuiz(); });
+    return;
+  }
+  const q = quiz.qs[quiz.i];
+  let prompt = "", big = "", opts = "";
+  if(q.type === "hear-word"){
+    prompt = "🎧 听单词，选出你听到的词：";
+    opts = q.options.map(o => `<button class="opt" data-ok="${o === q.word}">${o}</button>`).join("");
+  }else if(q.type === "combo-pinyin"){
+    prompt = "🔤 这个组合怎么读？选出正确的拼音提示：";
+    big = `<div class="qbig" style="color:${q.target.ipa ? "#4f46e5" : "#4f46e5"}">${q.target.combo}</div><div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:14px">${q.target.ipa}</div>`;
+    opts = q.options.map(o => `<button class="opt" data-ok="${o === q.target.pinyin}">${o}</button>`).join("");
+  }else{
+    prompt = "🎧 听单词，它包含哪个字母组合？";
+    opts = q.options.map(o => `<button class="opt" data-ok="${o === q.target.combo}">${o}</button>`).join("");
+  }
+  root.innerHTML = `<div class="quizbox">
+    <div class="qbar"><i style="width:${(quiz.i / quiz.qs.length) * 100}%"></i></div>
+    <div class="qmeta"><span>第 ${quiz.i + 1} / ${quiz.qs.length} 题</span><span>得分 ${quiz.score}</span></div>
+    <div class="qprompt">${prompt}</div>
+    ${q.type !== "combo-pinyin" ? `<div class="replay"><button class="btn main" id="qReplay">🔊 再听一次</button></div>` : ""}
+    ${big}
+    <div class="qopts">${opts}</div>
+    <div class="qfeed" id="qFeed"></div>
+    <div class="qnext" id="qNext"></div>
+  </div>`;
+  const replay = document.getElementById("qReplay");
+  const sayTarget = () => speak(q.type === "hear-word" ? q.word : q.word, 0.75);
+  if(replay) replay.addEventListener("click", sayTarget);
+  if(q.type !== "combo-pinyin") setTimeout(sayTarget, 350);
+  root.querySelectorAll(".opt").forEach(o => o.addEventListener("click", () => {
+    if(quiz.answered) return;
+    quiz.answered = true;
+    const ok = o.dataset.ok === "true";
+    if(ok) quiz.score++;
+    root.querySelectorAll(".opt").forEach(x => {
+      x.disabled = true;
+      if(x.dataset.ok === "true") x.classList.add("correct");
+    });
+    if(!ok) o.classList.add("wrong");
+    const feed = document.getElementById("qFeed");
+    feed.textContent = ok ? "✅ 答对了！" : `❌ 正确答案：${q.type === "hear-word" ? q.word : q.type === "combo-pinyin" ? q.target.pinyin : q.target.combo}（${q.target.combo} ${q.target.ipa}，${q.target.pinyin}）`;
+    feed.className = "qfeed " + (ok ? "ok" : "bad");
+    document.getElementById("qNext").innerHTML = `<button class="btn main bigbtn" id="qGo">${quiz.i + 1 >= quiz.qs.length ? "看结果" : "下一题 →"}</button>`;
+    document.getElementById("qGo").addEventListener("click", () => { quiz.i++; quiz.answered = false; renderQuiz(); });
+  }));
+}
+
+/* ================= 速查表 ================= */
+function renderSheet(){
+  const root = document.getElementById("view-sheet");
+  let html = `<p style="font-size:13px;color:var(--muted);margin:0 0 10px">打印出来贴墙上：组合 → 拼音近似 → 例词。（<b style="color:var(--hl)">红色</b> = 拼音里没有的音，重点跟读）</p><table class="sheet">
+  <thead><tr><th>组合</th><th>音标</th><th>拼音近似</th><th>例词</th></tr></thead><tbody>`;
+  for(const g of GROUPS){
+    html += `<tr class="sect"><td colspan="4">${g.name} —— ${g.desc}</td></tr>`;
+    for(const it of g.items){
+      const none = it.pinyin.includes("没有");
+      html += `<tr>
+        <td class="cb" style="color:${g.color}">${it.combo}</td>
+        <td>${it.ipa}</td>
+        <td class="py ${none ? "none" : ""}">${it.pinyin}</td>
+        <td class="wd">${it.words.slice(0, 4).join(" · ")}</td>
+      </tr>`;
+    }
+  }
+  html += `</tbody></table>`;
+  root.innerHTML = html;
+}
+
+/* ================= 句子页 ================= */
+const SENT_LEVELS=[
+ {name:"第1关 · 短元音句", list:[
+   {en:"The cat sat on a red mat.", cn:"猫坐在一块红色的垫子上。"},
+   {en:"A big pig sits in the mud.", cn:"一头大猪坐在泥里。"},
+   {en:"The dog and the fox run to the log.", cn:"狗和狐狸跑向木头。"},
+   {en:"Ten red hens get ten eggs.", cn:"十只红母鸡下十个蛋。"},
+   {en:"The fish swims in the pond.", cn:"鱼在池塘里游。"},
+   {en:"A bug sits on the red bus.", cn:"一只虫子坐在红色的公交车上。"},
+ ]},
+ {name:"第2关 · 长元音句", list:[
+   {en:"I like to ride my bike at night.", cn:"我喜欢在晚上骑我的自行车。"},
+   {en:"We can see the green tree by the sea.", cn:"我们能看见海边的绿树。"},
+   {en:"She eats a cake and a sweet peach.", cn:"她吃一块蛋糕和一个甜桃子。"},
+   {en:"The moon looks big and bright tonight.", cn:"今晚的月亮看起来又大又亮。"},
+   {en:"A white mouse runs into the house.", cn:"一只白老鼠跑进了房子。"},
+   {en:"I play with my toys in the rain.", cn:"下雨的时候我玩我的玩具。"},
+ ]},
+ {name:"第3关 · 进阶句", list:[
+   {en:"My friend and I play in the park.", cn:"我和朋友在公园里玩。"},
+   {en:"The three kings have gold rings.", cn:"三个国王有金戒指。"},
+   {en:"The girl wants to wash her shirt.", cn:"女孩想洗她的衬衫。"},
+   {en:"The boy found a coin near the tree.", cn:"男孩在树附近发现了一个硬币。"},
+   {en:"The tall horse stops at the wall.", cn:"高大的马在墙边停了下来。"},
+   {en:"Grandma reads a story about a mouse.", cn:"奶奶读了一个关于老鼠的故事。"},
+ ]},
+];
+function renderSent(){
+  const root=document.getElementById("view-sent");
+  let html=`<div class="intro"><b>📖 句子怎么用：</b>每一句都<b>只用了学习页里教过的组合</b>。点 🔊 听整句 → 一个词一个词点着读（带虚线的词都能点）→ 对照中文意思 → 读顺为止。去游戏版【🎯 特训 · 句子闯关】检验！</div>`;
+  SENT_LEVELS.forEach(lv=>{
+    html+=`<div class="group"><div class="ghead"><h2>${lv.name}</h2></div>`;
+    lv.list.forEach(s=>{
+      html+=`<div class="sentRow">
+        <button class="btn2" data-say="${s.en}">🔊</button>
+        <div class="sentMain">
+          <div class="sen">${s.en.replace(/[.!?]$/,"").split(" ").map(w=>`<span class="sw" data-say="${w}">${w}</span>`).join(" ")}<span>.</span></div>
+          <div class="sentCn">💬 ${s.cn}</div>
+        </div></div>`;
+    });
+    html+=`</div>`;
+  });
+  root.innerHTML=html;
+  root.querySelectorAll("[data-say]").forEach(el=>el.addEventListener("click",()=>speak(el.dataset.say,0.75)));
+}
+
+/* ================= 听写页 ================= */
+let drill=null;
+function renderDict(){
+  const root=document.getElementById("view-dict");
+  root.innerHTML=`
+  <div class="intro"><b>✍️ 听写训练：</b>点喇叭听单词，在框里把它拼出来——这是拼读的另一半能力"听音能写"。全部单词都来自学习页，检查后会告诉你对应哪个组合。闯关版在游戏【🎯 特训】。</div>
+  <div class="drillBox">
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-weight:700">
+      <span id="dMeta">第 1 / 8 词</span><span id="dScore">0 对</span>
+    </div>
+    <div style="text-align:center;margin:16px 0">
+      <button class="btn main" id="dPlay">🔊 播放单词</button>
+    </div>
+    <input class="drillInput" id="dInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="在这里拼出来…">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn main" style="flex:1" id="dCheck">检查</button>
+      <button class="btn" style="flex:1;display:none" id="dNext">下一个 →</button>
+    </div>
+    <div class="tip" id="dFeed" style="min-height:40px;margin-top:10px;font-size:14px"></div>
+  </div>`;
+  startDrill();
+  document.getElementById("dPlay").addEventListener("click",()=>speak(drill.list[drill.i].w,0.7));
+  document.getElementById("dCheck").addEventListener("click",checkDrill);
+  document.getElementById("dInput").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!drill.answered) checkDrill(); });
+  document.getElementById("dNext").addEventListener("click",()=>{ drill.i++; updateDrill(); });
+}
+function startDrill(){
+  const pool=[];
+  GROUPS.forEach(g=>g.items.forEach(it=>it.words.forEach(w=>{ if(/^[a-z]{3,8}$/.test(w)) pool.push({w,item:it}); })));
+  const list=shuffle(pool).slice(0,8);
+  drill={list,i:0,score:0,answered:false};
+  updateDrill();
+}
+function updateDrill(){
+  document.getElementById("dMeta").textContent=`第 ${drill.i+1} / ${drill.list.length} 词`;
+  document.getElementById("dScore").textContent=`${drill.score} 对`;
+  const inp=document.getElementById("dInput");
+  inp.value=""; inp.disabled=false; inp.focus();
+  document.getElementById("dCheck").style.display="";
+  document.getElementById("dNext").style.display="none";
+  const feed=document.getElementById("dFeed");
+  feed.textContent=""; feed.style.color="";
+  drill.answered=false;
+  setTimeout(()=>speak(drill.list[drill.i].w,0.7),400);
+}
+function checkDrill(){
+  if(drill.answered) return;
+  const t=drill.list[drill.i];
+  const v=document.getElementById("dInput").value.trim().toLowerCase();
+  if(!v) return;
+  drill.answered=true;
+  const ok=v===t.w;
+  if(ok) drill.score++;
+  document.getElementById("dInput").disabled=true;
+  document.getElementById("dCheck").style.display="none";
+  const feed=document.getElementById("dFeed");
+  feed.style.color= ok? "var(--ok)":"var(--bad)";
+  feed.innerHTML= ok
+    ? `✅ 对！${t.item.combo}：${t.item.pinyin}`
+    : `❌ 是 <b>${t.w}</b>（${t.item.combo}：${t.item.pinyin}）`;
+  if(drill.i<drill.list.length-1){
+    document.getElementById("dNext").style.display="";
+  }else{
+    feed.innerHTML+=`<br>本轮结束：<b>${drill.score}/${drill.list.length}</b> 对。<button class="btn main" style="padding:5px 12px;margin-top:8px" id="dAgain">再来一轮</button>`;
+    document.getElementById("dAgain").addEventListener("click",startDrill);
+  }
+}
+
+/* ================= 音节页 ================= */
+const SYL_RULES=[
+ {t:"音节是什么", d:"一个音节里只有一个元音创造的\"响亮核心\"。拍手数一数：ba·na·na 是 3 拍。"},
+ {t:"闭音节 vs 开音节", d:"元音被辅音\"关住\"读短音：rab·bit、hos·pi·tal；元音\"开着门\"在词尾读字母本音：ti·ger、ho·tel。这就是元音忽长忽短的原因！"},
+ {t:"词尾 -le 自成音节", d:"lit·tle、ap·ple、ta·ble、can·dle —— 词尾的 le 本身就是一个轻音节。"},
+ {t:"复合词直接切开", d:"bed·room、class·mate、snow·man —— 两个词粘在一起，在交界处切。"},
+ {t:"前缀后缀整块切", d:"un·do、read·ing、na·tion、pic·ture —— 前缀、后缀整个是一块。"},
+ {t:"重音：词里最响的一拍", d:"每个多音节词有且只有一个重音，读得更大声更长：to·MA·to、BA·na·na。后缀 -tion / -sion 的词重音在它们前面：va·CA·tion、di·REC·tion。"},
+];
+const SYL_LEVELS=[
+ {name:"两音节", list:[
+   {w:"tiger",syl:["ti","ger"],st:0},{w:"water",syl:["wa","ter"],st:0},{w:"monkey",syl:["mon","key"],st:0},
+   {w:"garden",syl:["gar","den"],st:0},{w:"hotel",syl:["ho","tel"],st:1},{w:"money",syl:["mon","ey"],st:0},
+   {w:"baby",syl:["ba","by"],st:0},{w:"pencil",syl:["pen","cil"],st:0},{w:"dolphin",syl:["dol","phin"],st:0}]},
+ {name:"三音节", list:[
+   {w:"banana",syl:["ba","na","na"],st:1},{w:"computer",syl:["com","pu","ter"],st:1},{w:"elephant",syl:["el","e","phant"],st:0},
+   {w:"family",syl:["fam","i","ly"],st:0},{w:"tomato",syl:["to","ma","to"],st:1},{w:"animal",syl:["an","i","mal"],st:0},
+   {w:"umbrella",syl:["um","brel","la"],st:1},{w:"important",syl:["im","por","tant"],st:1},{w:"hospital",syl:["hos","pi","tal"],st:0}]},
+ {name:"高阶", list:[
+   {w:"together",syl:["to","geth","er"],st:1},{w:"afternoon",syl:["af","ter","noon"],st:2},{w:"understand",syl:["un","der","stand"],st:2},
+   {w:"vacation",syl:["va","ca","tion"],st:1},{w:"direction",syl:["di","rec","tion"],st:1},{w:"bicycle",syl:["bi","cy","cle"],st:0},
+   {w:"holiday",syl:["hol","i","day"],st:0},{w:"september",syl:["sep","tem","ber"],st:1},{w:"television",syl:["te","le","vi","sion"],st:0}]},
+];
+function stressMark(syl,st){ return syl.map((s,i)=>i===st?s.toUpperCase():s).join("·"); }
+function renderSyl(){
+  const root=document.getElementById("view-syl");
+  let html=`<div class="intro"><b>🧩 多音节与重音：</b>先懂下面 6 条规则，再到下面的词上验证——点单词显示切分和重音，点 🔊 听发音。游戏版【🎯 特训】有对应的切分/重音题。</div>`;
+  SYL_RULES.forEach((r,i)=>{ html+=`<div class="ruleCard"><b class="rt">规则 ${i+1} · ${r.t}</b><div class="rd">${r.d}</div></div>`; });
+  const flat=[]; SYL_LEVELS.forEach(l=>flat.push(...l.list));
+  const demo=shuffle([...flat]).slice(0,12);
+  html+=`<h2 style="font-size:16px;margin:18px 0 10px">🗳 点词验证（每轮随机 12 个）</h2>`;
+  demo.forEach(it=>{
+    html+=`<div class="sylRow">
+      <button class="btn2" data-say="${it.w}">🔊</button>
+      <div class="sylW" data-w="${it.w}">${it.w}</div>
+      <div class="sylR" data-reveal="${stressMark(it.syl,it.st)}（重音第 ${it.st+1} 拍）">点我显示答案</div>
+    </div>`;
+  });
+  root.innerHTML=html;
+  root.querySelectorAll(".btn2").forEach(b=>b.addEventListener("click",()=>speak(b.dataset.say,0.75)));
+  root.querySelectorAll(".sylW").forEach(w=>w.addEventListener("click",()=>{
+    const r=w.closest(".sylRow").querySelector(".sylR");
+    if(r.dataset.on==="1"){ r.textContent="点我显示答案"; r.dataset.on="0"; }
+    else{ r.textContent=r.dataset.reveal; r.dataset.on="1"; speak(w.dataset.w,0.75); }
+  }));
+}
+
+/* ================= 页签切换 ================= */
+const views = {learn: "view-learn", sent: "view-sent", dict: "view-dict", syl: "view-syl", quiz: "view-quiz", sheet: "view-sheet"};
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  stopChant = true;
+  if(window.speechSynthesis) speechSynthesis.cancel();
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  for(const [name, id] of Object.entries(views)) document.getElementById(id).hidden = name !== t.dataset.tab;
+  if(t.dataset.tab === "quiz"){ quiz = null; renderQuiz(); }
+}));
+
+renderLearn();
+renderSheet();
+renderSent();
+renderDict();
+renderSyl();
+</script>
+</body>
+</html>
